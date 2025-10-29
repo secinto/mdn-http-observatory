@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mdn-observatory-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: observatory
+      POSTGRES_DB: observatory
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - observatory-network
+
+  observatory:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mdn-observatory-api
+    environment:
+      NODE_ENV: production
+      NODE_EXTRA_CA_CERTS: /app/node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/app/config
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - observatory-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  observatory-network:
+    driver: bridge
