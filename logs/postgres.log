@@ -1,0 +1,183 @@
+2025-10-29 08:46:20.540 UTC [7] FATAL:  lock file "postmaster.pid" already exists
+2025-10-29 08:46:20.540 UTC [7] HINT:  Is another postmaster (PID 8) running in data directory "/var/lib/postgresql/data"?
+2025-10-29 08:47:18.244 UTC [7] FATAL:  lock file "postmaster.pid" already exists
+2025-10-29 08:47:18.244 UTC [7] HINT:  Is another postmaster (PID 8) running in data directory "/var/lib/postgresql/data"?
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... sh: locale: not found
+2025-10-29 08:47:48.884 UTC [37] WARNING:  no usable system locales were found
+ok
+syncing data to disk ... ok
+
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data -l logfile start
+
+waiting for server to start....2025-10-29 08:47:49.378 UTC [43] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 08:47:49.379 UTC [43] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 08:47:49.383 UTC [46] LOG:  database system was shut down at 2025-10-29 08:47:49 UTC
+2025-10-29 08:47:49.387 UTC [43] LOG:  database system is ready to accept connections
+ done
+server started
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+waiting for server to shut down...2025-10-29 08:47:49.515 UTC [43] LOG:  received fast shutdown request
+.2025-10-29 08:47:49.517 UTC [43] LOG:  aborting any active transactions
+2025-10-29 08:47:49.520 UTC [43] LOG:  background worker "logical replication launcher" (PID 49) exited with exit code 1
+2025-10-29 08:47:49.521 UTC [44] LOG:  shutting down
+2025-10-29 08:47:49.523 UTC [44] LOG:  checkpoint starting: shutdown immediate
+2025-10-29 08:47:49.569 UTC [44] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.017 s, sync=0.025 s, total=0.048 s; sync files=301, longest=0.002 s, average=0.001 s; distance=4272 kB, estimate=4272 kB; lsn=0/191E928, redo lsn=0/191E928
+2025-10-29 08:47:49.577 UTC [43] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2025-10-29 08:47:49.640 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 08:47:49.641 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 08:47:49.641 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 08:47:49.643 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 08:47:49.647 UTC [59] LOG:  database system was shut down at 2025-10-29 08:47:49 UTC
+2025-10-29 08:47:49.652 UTC [7] LOG:  database system is ready to accept connections
+2025-10-29 08:52:49.716 UTC [57] LOG:  checkpoint starting: time
+2025-10-29 08:53:11.997 UTC [57] LOG:  checkpoint complete: wrote 225 buffers (1.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=22.261 s, sync=0.012 s, total=22.282 s; sync files=140, longest=0.001 s, average=0.001 s; distance=984 kB, estimate=984 kB; lsn=0/1A14A20, redo lsn=0/1A149E8
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:12:12.114 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:12:12.115 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:12:12.115 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:12:12.119 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:12:12.125 UTC [31] LOG:  database system was interrupted; last known up at 2025-10-29 08:53:11 UTC
+2025-10-29 09:12:12.233 UTC [31] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:12:12.239 UTC [31] LOG:  redo starts at 0/1A149E8
+2025-10-29 09:12:12.239 UTC [31] LOG:  invalid record length at 0/1A14AD0: expected at least 24, got 0
+2025-10-29 09:12:12.239 UTC [31] LOG:  redo done at 0/1A14A98 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:12:12.247 UTC [29] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:12:12.254 UTC [29] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.008 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/1A14AD0, redo lsn=0/1A14AD0
+2025-10-29 09:12:12.260 UTC [7] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:12:58.842 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:12:58.842 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:12:58.842 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:12:58.844 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:12:58.848 UTC [30] LOG:  database system was interrupted; last known up at 2025-10-29 09:12:12 UTC
+2025-10-29 09:12:58.950 UTC [30] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:12:58.952 UTC [30] LOG:  redo starts at 0/1A14B48
+2025-10-29 09:12:58.952 UTC [30] LOG:  invalid record length at 0/1A14B80: expected at least 24, got 0
+2025-10-29 09:12:58.953 UTC [30] LOG:  redo done at 0/1A14B48 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:12:58.956 UTC [28] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:12:58.965 UTC [28] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.001 s, total=0.011 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/1A14B80, redo lsn=0/1A14B80
+2025-10-29 09:12:58.970 UTC [7] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:15:39.503 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:15:39.503 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:15:39.503 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:15:39.506 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:15:39.509 UTC [30] LOG:  database system was interrupted; last known up at 2025-10-29 09:12:58 UTC
+2025-10-29 09:15:39.605 UTC [30] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:15:39.608 UTC [30] LOG:  redo starts at 0/1A14BF8
+2025-10-29 09:15:39.608 UTC [30] LOG:  invalid record length at 0/1A14C30: expected at least 24, got 0
+2025-10-29 09:15:39.608 UTC [30] LOG:  redo done at 0/1A14BF8 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:15:39.611 UTC [28] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:15:39.618 UTC [28] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.008 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/1A14C30, redo lsn=0/1A14C30
+2025-10-29 09:15:39.627 UTC [7] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:19:51.422 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:19:51.422 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:19:51.422 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:19:51.425 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:19:51.435 UTC [31] LOG:  database system was interrupted; last known up at 2025-10-29 09:15:39 UTC
+2025-10-29 09:19:51.564 UTC [31] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:19:51.568 UTC [31] LOG:  redo starts at 0/1A14CA8
+2025-10-29 09:19:51.571 UTC [31] LOG:  invalid record length at 0/1A19E40: expected at least 24, got 0
+2025-10-29 09:19:51.571 UTC [31] LOG:  redo done at 0/1A19E08 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:19:51.576 UTC [29] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:19:51.588 UTC [29] LOG:  checkpoint complete: wrote 21 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.004 s, total=0.014 s; sync files=20, longest=0.002 s, average=0.001 s; distance=20 kB, estimate=20 kB; lsn=0/1A19E40, redo lsn=0/1A19E40
+2025-10-29 09:19:51.600 UTC [7] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:22:33.458 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:22:33.459 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:22:33.459 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:22:33.461 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:22:33.465 UTC [30] LOG:  database system was interrupted; last known up at 2025-10-29 09:19:51 UTC
+2025-10-29 09:22:33.570 UTC [30] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:22:33.573 UTC [30] LOG:  redo starts at 0/1A19EB8
+2025-10-29 09:22:33.576 UTC [30] LOG:  invalid record length at 0/1A1F2B8: expected at least 24, got 0
+2025-10-29 09:22:33.576 UTC [30] LOG:  redo done at 0/1A1F280 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:22:33.580 UTC [28] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:22:33.590 UTC [28] LOG:  checkpoint complete: wrote 22 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.005 s, total=0.012 s; sync files=21, longest=0.002 s, average=0.001 s; distance=21 kB, estimate=21 kB; lsn=0/1A1F2B8, redo lsn=0/1A1F2B8
+2025-10-29 09:22:33.598 UTC [7] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:24:51.150 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:24:51.150 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:24:51.151 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:24:51.153 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:24:51.156 UTC [30] LOG:  database system was interrupted; last known up at 2025-10-29 09:22:33 UTC
+2025-10-29 09:24:51.251 UTC [30] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:24:51.254 UTC [30] LOG:  redo starts at 0/1A1F330
+2025-10-29 09:24:51.257 UTC [30] LOG:  invalid record length at 0/1A25788: expected at least 24, got 0
+2025-10-29 09:24:51.257 UTC [30] LOG:  redo done at 0/1A25750 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:24:51.261 UTC [28] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:24:51.270 UTC [28] LOG:  checkpoint complete: wrote 23 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.003 s, total=0.010 s; sync files=21, longest=0.002 s, average=0.001 s; distance=25 kB, estimate=25 kB; lsn=0/1A25788, redo lsn=0/1A25788
+2025-10-29 09:24:51.278 UTC [7] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2025-10-29 09:26:53.573 UTC [7] LOG:  starting PostgreSQL 16.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+2025-10-29 09:26:53.573 UTC [7] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-10-29 09:26:53.573 UTC [7] LOG:  listening on IPv6 address "::", port 5432
+2025-10-29 09:26:53.576 UTC [7] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-10-29 09:26:53.580 UTC [30] LOG:  database system was interrupted; last known up at 2025-10-29 09:24:51 UTC
+2025-10-29 09:26:53.680 UTC [30] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 09:26:53.683 UTC [30] LOG:  redo starts at 0/1A25800
+2025-10-29 09:26:53.685 UTC [30] LOG:  invalid record length at 0/1A2AD60: expected at least 24, got 0
+2025-10-29 09:26:53.685 UTC [30] LOG:  redo done at 0/1A2AD28 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 09:26:53.689 UTC [28] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-10-29 09:26:53.698 UTC [28] LOG:  checkpoint complete: wrote 21 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.003 s, total=0.010 s; sync files=20, longest=0.002 s, average=0.001 s; distance=21 kB, estimate=21 kB; lsn=0/1A2AD60, redo lsn=0/1A2AD60
+2025-10-29 09:26:53.706 UTC [7] LOG:  database system is ready to accept connections
+2025-10-29 13:38:21.588 UTC [11335] FATAL:  unsupported frontend protocol 65363.19778: server supports 3.0 to 3.0
+2025-10-29 13:59:21.826 UTC [12275] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+2025-10-29 13:59:22.144 UTC [12276] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+2025-10-29 13:59:22.469 UTC [12277] FATAL:  no PostgreSQL user name specified in startup packet
+2025-10-29 14:00:48.952 UTC [12347] FATAL:  password authentication failed for user "postgres"
+2025-10-29 14:00:48.952 UTC [12347] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2025-10-29 14:00:49.187 UTC [12348] FATAL:  password authentication failed for user "postgres"
+2025-10-29 14:00:49.187 UTC [12348] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2025-10-29 14:00:49.500 UTC [12349] FATAL:  password authentication failed for user "postgres"
+2025-10-29 14:00:49.500 UTC [12349] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2025-10-29 14:41:59.040 UTC [28] LOG:  checkpoint starting: time
+2025-10-29 14:42:00.855 UTC [28] LOG:  checkpoint complete: wrote 19 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.807 s, sync=0.003 s, total=1.815 s; sync files=19, longest=0.002 s, average=0.001 s; distance=25 kB, estimate=25 kB; lsn=0/1A31400, redo lsn=0/1A313C8
+2025-10-29 14:46:59.949 UTC [28] LOG:  checkpoint starting: time
+2025-10-29 14:47:01.764 UTC [28] LOG:  checkpoint complete: wrote 19 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.807 s, sync=0.004 s, total=1.815 s; sync files=19, longest=0.002 s, average=0.001 s; distance=29 kB, estimate=29 kB; lsn=0/1A38B08, redo lsn=0/1A38AD0

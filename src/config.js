@@ -68,6 +68,12 @@ const SCHEMA = {
     },
   },
   api: {
+    baseUrl: {
+      doc: "Base URL for details_url in scan responses",
+      format: "String",
+      default: "",
+      env: "HTTPOBS_BASE_URL",
+    },
     cooldown: {
       doc: "Cached result time for API V2, in Seconds. Defaults to 1 minute",
       format: "nat",

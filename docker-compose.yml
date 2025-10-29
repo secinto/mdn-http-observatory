@@ -12,6 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./logs:/logs
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -19,6 +20,13 @@ services:
       retries: 5
     networks:
       - observatory-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["docker-entrypoint.sh postgres 2>&1 | tee -a /logs/postgres.log"]
 
   observatory:
     build:
@@ -28,16 +36,29 @@ services:
     environment:
       NODE_ENV: production
       NODE_EXTRA_CA_CERTS: /app/node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem
+      PGHOST: postgres
+      PGDATABASE: observatory
+      PGUSER: postgres
+      PGPASSWORD: observatory
+      PGPORT: 5432
+      HTTPOBS_BASE_URL: http://10.127.10.4:8080
     ports:
-      - "8080:8080"
+      - "10.127.10.4:8080:8080"
     volumes:
       - ./config:/app/config
+      - ./logs:/logs
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - observatory-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: sh -c "node src/api/index.js 2>&1 | tee -a /logs/observatory-api.log"
 
 volumes:
   postgres_data:

@@ -43,6 +43,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "@anthropic-ai/claude-code": "^2.0.28",
     "@fastify/cors": "^11.0.1",
     "@fastify/helmet": "^13.0.0",
     "@fastify/postgres": "^6.0.1",

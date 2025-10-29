@@ -43,6 +43,14 @@ async function scanOrReturnRecent(_fastify, pool, site, age) {
   }
 
   scanRow.scanned_at = scanRow.start_time;
-  const siteLink = `https://developer.mozilla.org/en-US/observatory/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
+
+  // Build details URL using configurable base URL
+  let siteLink;
+  if (CONFIG.api.baseUrl) {
+    siteLink = `${CONFIG.api.baseUrl}/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
+  } else {
+    siteLink = `https://developer.mozilla.org/en-US/observatory/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
+  }
+
   return { details_url: siteLink, ...scanRow };
 }

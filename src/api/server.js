@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/node";
 // import analyzeApiV1 from "./v1/analyze/index.js";
 import analyzeApiV2 from "./v2/analyze/index.js";
 import scanApiV2 from "./v2/scan/index.js";
+import scanFullDetailsApiV2 from "./v2/scan/full-details.js";
 import statsApiV2 from "./v2/stats/index.js";
 import recommendationMatrixApiV2 from "./v2/recommendations/index.js";
 import version from "./version/index.js";
@@ -122,6 +123,7 @@ export async function createServer() {
   await Promise.all([
     server.register(analyzeApiV2, { prefix: "/api/v2" }),
     server.register(scanApiV2, { prefix: "/api/v2" }),
+    server.register(scanFullDetailsApiV2, { prefix: "/api/v2" }),
     server.register(statsApiV2, { prefix: "/api/v2" }),
     server.register(recommendationMatrixApiV2, { prefix: "/api/v2" }),
     server.register(version, { prefix: "/api/v2" }),

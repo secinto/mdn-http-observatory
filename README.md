@@ -99,28 +99,40 @@ The server is listening on your local interface on port `8080`. You can check th
 
 **Note:** We provide these endpoints on our public deployment of HTTP Observatory at <https://observatory-api.mdn.mozilla.net/>
 
+### Configuration
+
+The `HTTPOBS_BASE_URL` environment variable can be used to customize the `details_url` field in API responses. If not set, it defaults to the MDN Observatory URL.
+
+Example: `HTTPOBS_BASE_URL=https://your-domain.com`
+
+---
+
 ### POST `/api/v2/scan`
 
-For integration in CI pipelines or similar applications, a JSON API endpoint is provided. The request rate is limited to one scan per host per `api.cooldown` (default: One minute) seconds. If exceeded, a cached result will be returned.
+Returns a summary of the scan results for a given host. Ideal for CI/CD pipelines and quick security checks.
 
-#### Query parameters
+**Rate Limiting:** One scan per host per `api.cooldown` (default: 60 seconds). Cached results are returned if rate limit is exceeded.
 
-* `host` hostname (required)
+#### Query Parameters
+
+* `host` - hostname (required)
 
 #### Examples
 
-* `POST /api/v2/scan?host=mdn.dev`
-* `POST /api/v2/scan?host=google.com`
+```bash
+curl -X POST "http://localhost:8080/api/v2/scan?host=mdn.dev"
+curl -X POST "http://localhost:8080/api/v2/scan?host=example.com"
+```
 
-#### Result
+#### Response
 
-On success, a JSON object is returned, structured like this example response:
+On success, returns a JSON object with scan summary:
 
 ```json
 {
   "id": 77666718,
   "details_url": "https://developer.mozilla.org/en-US/observatory/analyze?host=mdn.dev",
-  "algorithm_version": 4,
+  "algorithm_version": 5,
   "scanned_at": "2024-08-12T08:20:18.926Z",
   "error": null,
   "grade": "A+",
@@ -132,9 +144,7 @@ On success, a JSON object is returned, structured like this example response:
 }
 ```
 
-**Note:** For a full set of details about the host, use the provided link in the `details_url` field.
-
-If an error occurred, an object like this is returned:
+On error:
 
 ```json
 {
@@ -142,6 +152,164 @@ If an error occurred, an object like this is returned:
   "message": "some.invalid.hostname.dev cannot be resolved"
 }
 ```
+
+---
+
+### POST `/api/v2/scanFullDetails`
+
+Returns the same summary data as `/api/v2/scan` plus complete details of all security tests performed. Use this when you need full test results in a single API call.
+
+**Rate Limiting:** Same as `/api/v2/scan` - one scan per host per `api.cooldown` seconds.
+
+#### Query Parameters
+
+* `host` - hostname (required)
+
+#### Examples
+
+```bash
+curl -X POST "http://localhost:8080/api/v2/scanFullDetails?host=mdn.dev"
+curl -X POST "http://localhost:8080/api/v2/scanFullDetails?host=example.com"
+```
+
+#### Response
+
+Returns scan summary plus `fullDetails` object containing complete scan and test information:
+
+```json
+{
+  "id": 77666718,
+  "details_url": "https://your-domain.com/analyze?host=mdn.dev",
+  "algorithm_version": 5,
+  "scanned_at": "2024-08-12T08:20:18.926Z",
+  "error": null,
+  "grade": "A+",
+  "score": 105,
+  "status_code": 200,
+  "tests_failed": 0,
+  "tests_passed": 10,
+  "tests_quantity": 10,
+  "fullDetails": {
+    "scan": {
+      "algorithmVersion": 5,
+      "grade": "A+",
+      "error": null,
+      "score": 105,
+      "statusCode": 200,
+      "testsFailed": 0,
+      "testsPassed": 10,
+      "testsQuantity": 10,
+      "responseHeaders": {
+        "content-type": "text/html; charset=utf-8",
+        "strict-transport-security": "max-age=63072000",
+        ...
+      }
+    },
+    "tests": {
+      "content-security-policy": {
+        "expectation": "csp-implemented-with-no-unsafe",
+        "pass": true,
+        "result": "csp-implemented-with-no-unsafe",
+        "scoreModifier": 0,
+        "data": {...},
+        "http": true,
+        "meta": false,
+        "policy": {...}
+      },
+      "cookies": {
+        "expectation": "cookies-secure-with-httponly-sessions",
+        "pass": true,
+        "result": "cookies-secure-with-httponly-sessions",
+        "scoreModifier": 5,
+        "data": {...}
+      },
+      ...
+    }
+  }
+}
+```
+
+---
+
+### GET/POST `/api/v2/analyze`
+
+Returns comprehensive analysis including scan results, all test details, and historical scan data for the host. This endpoint provides the most complete dataset.
+
+**Rate Limiting:** 
+- GET requests: Returns cached results up to `api.cacheTimeForGet` seconds old (default: 24 hours)
+- POST requests: Same as `/api/v2/scan` - one scan per `api.cooldown` seconds
+
+#### Query Parameters
+
+* `host` - hostname (required)
+
+#### Examples
+
+```bash
+# GET - returns recent cached results if available
+curl "http://localhost:8080/api/v2/analyze?host=mdn.dev"
+
+# POST - forces a new scan (subject to rate limiting)
+curl -X POST "http://localhost:8080/api/v2/analyze?host=mdn.dev"
+```
+
+#### Response
+
+Returns a comprehensive object with scan results, tests, and history:
+
+```json
+{
+  "scan": {
+    "id": 77666718,
+    "algorithm_version": 5,
+    "scanned_at": "2024-08-12T08:20:18.926Z",
+    "error": null,
+    "grade": "A+",
+    "score": 105,
+    "status_code": 200,
+    "tests_failed": 0,
+    "tests_passed": 10,
+    "tests_quantity": 10,
+    "site_id": 12345
+  },
+  "tests": {
+    "content-security-policy": {
+      "expectation": "csp-implemented-with-no-unsafe",
+      "pass": true,
+      "result": "csp-implemented-with-no-unsafe",
+      "scoreModifier": 0,
+      ...
+    },
+    ...
+  },
+  "history": [
+    {
+      "id": 77666718,
+      "scanned_at": "2024-08-12T08:20:18.926Z",
+      "grade": "A+",
+      "score": 105
+    },
+    {
+      "id": 77555432,
+      "scanned_at": "2024-08-10T14:15:22.123Z",
+      "grade": "A",
+      "score": 100
+    },
+    ...
+  ]
+}
+```
+
+---
+
+### Comparison of Endpoints
+
+| Endpoint | Use Case | Includes History | Includes Full Test Details | Response Time |
+|----------|----------|------------------|---------------------------|---------------|
+| `/api/v2/scan` | Quick checks, CI/CD | ❌ | ❌ | Fastest |
+| `/api/v2/scanFullDetails` | Detailed analysis, single call | ❌ | ✅ | Medium |
+| `/api/v2/analyze` | Complete analysis with history | ✅ | ✅ | Slower (includes DB queries) |
+
 
 ## Migrating from the public V1 API to the V2 API
 
@@ -173,3 +341,4 @@ If you have any questions, please reach out to us on [Mozilla Developer Network]
 ## License
 
 This project is licensed under the [Mozilla Public License 2.0](LICENSE).
+
