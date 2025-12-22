@@ -1,0 +1,739 @@
+From 018def12ffb64f1bd47e93fda861be35f1d77427 Mon Sep 17 00:00:00 2001
+From: Stefan Kraxberger <stefan.kraxberger@secinto.com>
+Date: Wed, 29 Oct 2025 09:19:34 +0100
+Subject: [PATCH 1/2] Added docker compose
+
+---
+ DOCKER.md            | 80 ++++++++++++++++++++++++++++++++++++++++++++
+ config/config.json   |  9 +++++
+ docker-compose.yml   | 48 ++++++++++++++++++++++++++
+ docker-entrypoint.sh | 14 ++++++++
+ 4 files changed, 151 insertions(+)
+ create mode 100644 DOCKER.md
+ create mode 100644 config/config.json
+ create mode 100644 docker-compose.yml
+ create mode 100644 docker-entrypoint.sh
+
+diff --git a/DOCKER.md b/DOCKER.md
+new file mode 100644
+index 0000000..22e0a83
+--- /dev/null
++++ b/DOCKER.md
+@@ -0,0 +1,80 @@
++# Docker Setup for MDN HTTP Observatory
++
++## Quick Start
++
++1. **Start the services:**
++   ```bash
++   docker-compose up -d
++   ```
++
++2. **Check the logs:**
++   ```bash
++   docker-compose logs -f
++   ```
++
++3. **Access the API:**
++   - Open http://localhost:8080/ in your browser
++   - Should display: "Welcome to the MDN Observatory!"
++
++## Services
++
++- **PostgreSQL Database** (port 5432)
++  - User: `postgres`
++  - Password: `observatory`
++  - Database: `observatory`
++  
++- **Observatory API** (port 8080)
++  - Automatically runs migrations on startup
++  - API available at http://localhost:8080
++
++## Commands
++
++### Start services
++```bash
++docker-compose up -d
++```
++
++### Stop services
++```bash
++docker-compose down
++```
++
++### Stop and remove volumes (fresh start)
++```bash
++docker-compose down -v
++```
++
++### View logs
++```bash
++docker-compose logs -f observatory
++docker-compose logs -f postgres
++```
++
++### Rebuild after code changes
++```bash
++docker-compose up -d --build
++```
++
++### Access PostgreSQL directly
++```bash
++docker-compose exec postgres psql -U postgres -d observatory
++```
++
++## Configuration
++
++The database configuration is in `config/config.json`. The Docker setup uses these defaults:
++- Host: `postgres` (Docker service name)
++- Port: 5432
++- Database: `observatory`
++- User: `postgres`
++- Password: `observatory`
++
++To use different credentials, modify:
++1. `docker-compose.yml` - PostgreSQL environment variables
++2. `config/config.json` - Database connection settings
++
++## Notes
++
++- Database migrations run automatically when the container starts
++- PostgreSQL data persists in a Docker volume named `postgres_data`
++- The API waits for PostgreSQL to be healthy before starting
+diff --git a/config/config.json b/config/config.json
+new file mode 100644
+index 0000000..fb9adfb
+--- /dev/null
++++ b/config/config.json
+@@ -0,0 +1,9 @@
++{
++  "database": {
++    "host": "postgres",
++    "port": 5432,
++    "database": "observatory",
++    "user": "postgres",
++    "password": "observatory"
++  }
++}
+diff --git a/docker-compose.yml b/docker-compose.yml
+new file mode 100644
+index 0000000..a669c11
+--- /dev/null
++++ b/docker-compose.yml
+@@ -0,0 +1,48 @@
++version: '3.8'
++
++services:
++  postgres:
++    image: postgres:16-alpine
++    container_name: mdn-observatory-db
++    environment:
++      POSTGRES_USER: postgres
++      POSTGRES_PASSWORD: observatory
++      POSTGRES_DB: observatory
++    ports:
++      - "5432:5432"
++    volumes:
++      - postgres_data:/var/lib/postgresql/data
++    healthcheck:
++      test: ["CMD-SHELL", "pg_isready -U postgres"]
++      interval: 10s
++      timeout: 5s
++      retries: 5
++    networks:
++      - observatory-network
++
++  observatory:
++    build:
++      context: .
++      dockerfile: Dockerfile
++    container_name: mdn-observatory-api
++    environment:
++      NODE_ENV: production
++      NODE_EXTRA_CA_CERTS: /app/node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem
++    ports:
++      - "8080:8080"
++    volumes:
++      - ./config:/app/config
++    depends_on:
++      postgres:
++        condition: service_healthy
++    networks:
++      - observatory-network
++    restart: unless-stopped
++
++volumes:
++  postgres_data:
++    driver: local
++
++networks:
++  observatory-network:
++    driver: bridge
+diff --git a/docker-entrypoint.sh b/docker-entrypoint.sh
+new file mode 100644
+index 0000000..2d28129
+--- /dev/null
++++ b/docker-entrypoint.sh
+@@ -0,0 +1,14 @@
++#!/bin/sh
++set -e
++
++echo "Waiting for PostgreSQL to be ready..."
++until pg_isready -h postgres -U postgres; do
++  echo "PostgreSQL is unavailable - sleeping"
++  sleep 2
++done
++
++echo "PostgreSQL is up - executing migrations"
++npm run migrate
++
++echo "Starting application"
++exec "$@"
+-- 
+2.50.1 (Apple Git-155)
+
+
+From fbeba780895c28f50e78c5c6a0e06f1eb3eb9bbc Mon Sep 17 00:00:00 2001
+From: CheckFix Check <checkfix@checkfix.io>
+Date: Wed, 29 Oct 2025 14:57:54 +0000
+Subject: [PATCH 2/2] Updates on APIs
+
+---
+ .env.example                    |  33 ++++++
+ README.md                       | 191 ++++++++++++++++++++++++++++++--
+ docker-compose.yml              |  23 +++-
+ src/api/server.js               |   2 +
+ src/api/v2/scan/full-details.js | 131 ++++++++++++++++++++++
+ src/api/v2/scan/index.js        |  10 +-
+ src/config.js                   |   6 +
+ 7 files changed, 383 insertions(+), 13 deletions(-)
+ create mode 100644 .env.example
+ create mode 100644 src/api/v2/scan/full-details.js
+
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..f6aa253
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,33 @@
++# Base URL for details_url in scan responses
++# Example: https://your-domain.com or http://localhost:3000
++# Leave empty to use the default MDN Observatory URL
++HTTPOBS_BASE_URL=
++
++# API Server Port
++HTTPOBS_API_PORT=8080
++
++# Database Configuration
++PGHOST=localhost
++PGPORT=5432
++PGUSER=postgres
++PGPASSWORD=
++PGDATABASE=httpobservatory
++PGSSLMODE=false
++
++# API Configuration
++HTTPOBS_API_COOLDOWN=60
++HTTPOBS_API_GET_CACHE=86400
++HTTPOBS_ENABLE_LOGGING=true
++
++# Retriever Configuration
++RETRIEVER_USER_AGENT="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:129.0) Gecko/20100101 Firefox/129.0 Observatory/129.0"
++CORS_ORIGIN=https://http-observatory.security.mozilla.org
++ABORT_TIMEOUT=10000
++CLIENT_TIMEOUT=9000
++
++# Sentry (Error Tracking)
++SENTRY_DSN=
++
++# Testing
++HTTPOBS_TESTS_ENABLE_DB_TESTS=false
++HTTPOBS_TESTS_HOST_FOR_PORT_AND_PATH_CHECKS=
+diff --git a/README.md b/README.md
+index 12f30cc..5f4bd0c 100644
+--- a/README.md
++++ b/README.md
+@@ -99,28 +99,40 @@ The server is listening on your local interface on port `8080`. You can check th
+ 
+ **Note:** We provide these endpoints on our public deployment of HTTP Observatory at <https://observatory-api.mdn.mozilla.net/>
+ 
++### Configuration
++
++The `HTTPOBS_BASE_URL` environment variable can be used to customize the `details_url` field in API responses. If not set, it defaults to the MDN Observatory URL.
++
++Example: `HTTPOBS_BASE_URL=https://your-domain.com`
++
++---
++
+ ### POST `/api/v2/scan`
+ 
+-For integration in CI pipelines or similar applications, a JSON API endpoint is provided. The request rate is limited to one scan per host per `api.cooldown` (default: One minute) seconds. If exceeded, a cached result will be returned.
++Returns a summary of the scan results for a given host. Ideal for CI/CD pipelines and quick security checks.
++
++**Rate Limiting:** One scan per host per `api.cooldown` (default: 60 seconds). Cached results are returned if rate limit is exceeded.
+ 
+-#### Query parameters
++#### Query Parameters
+ 
+-* `host` hostname (required)
++* `host` - hostname (required)
+ 
+ #### Examples
+ 
+-* `POST /api/v2/scan?host=mdn.dev`
+-* `POST /api/v2/scan?host=google.com`
++```bash
++curl -X POST "http://localhost:8080/api/v2/scan?host=mdn.dev"
++curl -X POST "http://localhost:8080/api/v2/scan?host=example.com"
++```
+ 
+-#### Result
++#### Response
+ 
+-On success, a JSON object is returned, structured like this example response:
++On success, returns a JSON object with scan summary:
+ 
+ ```json
+ {
+   "id": 77666718,
+   "details_url": "https://developer.mozilla.org/en-US/observatory/analyze?host=mdn.dev",
+-  "algorithm_version": 4,
++  "algorithm_version": 5,
+   "scanned_at": "2024-08-12T08:20:18.926Z",
+   "error": null,
+   "grade": "A+",
+@@ -132,9 +144,7 @@ On success, a JSON object is returned, structured like this example response:
+ }
+ ```
+ 
+-**Note:** For a full set of details about the host, use the provided link in the `details_url` field.
+-
+-If an error occurred, an object like this is returned:
++On error:
+ 
+ ```json
+ {
+@@ -143,6 +153,164 @@ If an error occurred, an object like this is returned:
+ }
+ ```
+ 
++---
++
++### POST `/api/v2/scanFullDetails`
++
++Returns the same summary data as `/api/v2/scan` plus complete details of all security tests performed. Use this when you need full test results in a single API call.
++
++**Rate Limiting:** Same as `/api/v2/scan` - one scan per host per `api.cooldown` seconds.
++
++#### Query Parameters
++
++* `host` - hostname (required)
++
++#### Examples
++
++```bash
++curl -X POST "http://localhost:8080/api/v2/scanFullDetails?host=mdn.dev"
++curl -X POST "http://localhost:8080/api/v2/scanFullDetails?host=example.com"
++```
++
++#### Response
++
++Returns scan summary plus `fullDetails` object containing complete scan and test information:
++
++```json
++{
++  "id": 77666718,
++  "details_url": "https://your-domain.com/analyze?host=mdn.dev",
++  "algorithm_version": 5,
++  "scanned_at": "2024-08-12T08:20:18.926Z",
++  "error": null,
++  "grade": "A+",
++  "score": 105,
++  "status_code": 200,
++  "tests_failed": 0,
++  "tests_passed": 10,
++  "tests_quantity": 10,
++  "fullDetails": {
++    "scan": {
++      "algorithmVersion": 5,
++      "grade": "A+",
++      "error": null,
++      "score": 105,
++      "statusCode": 200,
++      "testsFailed": 0,
++      "testsPassed": 10,
++      "testsQuantity": 10,
++      "responseHeaders": {
++        "content-type": "text/html; charset=utf-8",
++        "strict-transport-security": "max-age=63072000",
++        ...
++      }
++    },
++    "tests": {
++      "content-security-policy": {
++        "expectation": "csp-implemented-with-no-unsafe",
++        "pass": true,
++        "result": "csp-implemented-with-no-unsafe",
++        "scoreModifier": 0,
++        "data": {...},
++        "http": true,
++        "meta": false,
++        "policy": {...}
++      },
++      "cookies": {
++        "expectation": "cookies-secure-with-httponly-sessions",
++        "pass": true,
++        "result": "cookies-secure-with-httponly-sessions",
++        "scoreModifier": 5,
++        "data": {...}
++      },
++      ...
++    }
++  }
++}
++```
++
++---
++
++### GET/POST `/api/v2/analyze`
++
++Returns comprehensive analysis including scan results, all test details, and historical scan data for the host. This endpoint provides the most complete dataset.
++
++**Rate Limiting:** 
++- GET requests: Returns cached results up to `api.cacheTimeForGet` seconds old (default: 24 hours)
++- POST requests: Same as `/api/v2/scan` - one scan per `api.cooldown` seconds
++
++#### Query Parameters
++
++* `host` - hostname (required)
++
++#### Examples
++
++```bash
++# GET - returns recent cached results if available
++curl "http://localhost:8080/api/v2/analyze?host=mdn.dev"
++
++# POST - forces a new scan (subject to rate limiting)
++curl -X POST "http://localhost:8080/api/v2/analyze?host=mdn.dev"
++```
++
++#### Response
++
++Returns a comprehensive object with scan results, tests, and history:
++
++```json
++{
++  "scan": {
++    "id": 77666718,
++    "algorithm_version": 5,
++    "scanned_at": "2024-08-12T08:20:18.926Z",
++    "error": null,
++    "grade": "A+",
++    "score": 105,
++    "status_code": 200,
++    "tests_failed": 0,
++    "tests_passed": 10,
++    "tests_quantity": 10,
++    "site_id": 12345
++  },
++  "tests": {
++    "content-security-policy": {
++      "expectation": "csp-implemented-with-no-unsafe",
++      "pass": true,
++      "result": "csp-implemented-with-no-unsafe",
++      "scoreModifier": 0,
++      ...
++    },
++    ...
++  },
++  "history": [
++    {
++      "id": 77666718,
++      "scanned_at": "2024-08-12T08:20:18.926Z",
++      "grade": "A+",
++      "score": 105
++    },
++    {
++      "id": 77555432,
++      "scanned_at": "2024-08-10T14:15:22.123Z",
++      "grade": "A",
++      "score": 100
++    },
++    ...
++  ]
++}
++```
++
++---
++
++### Comparison of Endpoints
++
++| Endpoint | Use Case | Includes History | Includes Full Test Details | Response Time |
++|----------|----------|------------------|---------------------------|---------------|
++| `/api/v2/scan` | Quick checks, CI/CD | ❌ | ❌ | Fastest |
++| `/api/v2/scanFullDetails` | Detailed analysis, single call | ❌ | ✅ | Medium |
++| `/api/v2/analyze` | Complete analysis with history | ✅ | ✅ | Slower (includes DB queries) |
++
++
+ ## Migrating from the public V1 API to the V2 API
+ 
+ ### Sunset of the V1 API
+@@ -173,3 +341,4 @@ If you have any questions, please reach out to us on [Mozilla Developer Network]
+ ## License
+ 
+ This project is licensed under the [Mozilla Public License 2.0](LICENSE).
++
+diff --git a/docker-compose.yml b/docker-compose.yml
+index a669c11..2ba6411 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -12,6 +12,7 @@ services:
+       - "5432:5432"
+     volumes:
+       - postgres_data:/var/lib/postgresql/data
++      - ./logs:/logs
+     healthcheck:
+       test: ["CMD-SHELL", "pg_isready -U postgres"]
+       interval: 10s
+@@ -19,6 +20,13 @@ services:
+       retries: 5
+     networks:
+       - observatory-network
++    logging:
++      driver: "json-file"
++      options:
++        max-size: "10m"
++        max-file: "3"
++    entrypoint: ["/bin/sh", "-c"]
++    command: ["docker-entrypoint.sh postgres 2>&1 | tee -a /logs/postgres.log"]
+ 
+   observatory:
+     build:
+@@ -28,16 +36,29 @@ services:
+     environment:
+       NODE_ENV: production
+       NODE_EXTRA_CA_CERTS: /app/node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem
++      PGHOST: postgres
++      PGDATABASE: observatory
++      PGUSER: postgres
++      PGPASSWORD: observatory
++      PGPORT: 5432
++      HTTPOBS_BASE_URL: http://10.127.10.4:8080
+     ports:
+-      - "8080:8080"
++      - "10.127.10.4:8080:8080"
+     volumes:
+       - ./config:/app/config
++      - ./logs:/logs
+     depends_on:
+       postgres:
+         condition: service_healthy
+     networks:
+       - observatory-network
+     restart: unless-stopped
++    logging:
++      driver: "json-file"
++      options:
++        max-size: "10m"
++        max-file: "3"
++    command: sh -c "node src/api/index.js 2>&1 | tee -a /logs/observatory-api.log"
+ 
+ volumes:
+   postgres_data:
+diff --git a/src/api/server.js b/src/api/server.js
+index 60be797..4f01ff7 100644
+--- a/src/api/server.js
++++ b/src/api/server.js
+@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/node";
+ // import analyzeApiV1 from "./v1/analyze/index.js";
+ import analyzeApiV2 from "./v2/analyze/index.js";
+ import scanApiV2 from "./v2/scan/index.js";
++import scanFullDetailsApiV2 from "./v2/scan/full-details.js";
+ import statsApiV2 from "./v2/stats/index.js";
+ import recommendationMatrixApiV2 from "./v2/recommendations/index.js";
+ import version from "./version/index.js";
+@@ -122,6 +123,7 @@ export async function createServer() {
+   await Promise.all([
+     server.register(analyzeApiV2, { prefix: "/api/v2" }),
+     server.register(scanApiV2, { prefix: "/api/v2" }),
++    server.register(scanFullDetailsApiV2, { prefix: "/api/v2" }),
+     server.register(statsApiV2, { prefix: "/api/v2" }),
+     server.register(recommendationMatrixApiV2, { prefix: "/api/v2" }),
+     server.register(version, { prefix: "/api/v2" }),
+diff --git a/src/api/v2/scan/full-details.js b/src/api/v2/scan/full-details.js
+new file mode 100644
+index 0000000..7ef4a49
+--- /dev/null
++++ b/src/api/v2/scan/full-details.js
+@@ -0,0 +1,131 @@
++import { CONFIG } from "../../../config.js";
++import { selectScanLatestScanByHost as selectScanLatestScanBySite } from "../../../database/repository.js";
++import { scan } from "../../../scanner/index.js";
++import { Site } from "../../../site.js";
++import { checkSitename, executeScan } from "../utils.js";
++
++/**
++ * @typedef {import("pg").Pool} Pool
++ */
++
++// Schema for scanFullDetails endpoint - extends scan response with fullDetails
++const scanFullDetailsSchema = {
++  querystring: {
++    type: "object",
++    properties: {
++      host: {
++        type: "string",
++      },
++    },
++    required: ["host"],
++  },
++  response: {
++    200: {
++      type: "object",
++      properties: {
++        id: { type: "number" },
++        details_url: { type: "string" },
++        algorithm_version: { type: "number" },
++        scanned_at: { type: "string" },
++        error: { type: ["string", "null"] },
++        grade: { type: ["string", "null"] },
++        score: { type: ["number", "null"] },
++        status_code: { type: ["number", "null"] },
++        tests_failed: { type: "number" },
++        tests_passed: { type: "number" },
++        tests_quantity: { type: "number" },
++        fullDetails: {
++          type: "object",
++          properties: {
++            scan: { type: "object", additionalProperties: true },
++            tests: { type: "object", additionalProperties: true },
++          },
++        },
++      },
++    },
++  },
++};
++
++/**
++ * Register the API - default export
++ * @param {import('fastify').FastifyInstance} fastify
++ * @returns {Promise<void>}
++ */
++export default async function (fastify) {
++  const pool = fastify.pg.pool;
++  fastify.post(
++    "/scanFullDetails",
++    { schema: scanFullDetailsSchema },
++    async (request, _reply) => {
++      const query = /** @type {import("../../v2/schemas.js").ScanQuery} */ (
++        request.query
++      );
++
++      const hostname = query.host.trim().toLowerCase();
++      let site = Site.fromSiteString(hostname);
++      site = await checkSitename(site);
++      return await scanOrReturnRecentWithFullDetails(
++        pool,
++        site,
++        CONFIG.api.cooldown
++      );
++    }
++  );
++}
++
++/**
++ *
++ * @param {Pool} pool
++ * @param {Site} site
++ * @param {number} age
++ * @returns {Promise<any>}
++ */
++async function scanOrReturnRecentWithFullDetails(pool, site, age) {
++  let scanRow = await selectScanLatestScanBySite(pool, site.asSiteKey(), age);
++
++  if (!scanRow) {
++    // Do a fresh scan - this will save to DB and return scanRow
++    scanRow = await executeScan(pool, site);
++  }
++
++  // Always run a fresh scan to get the full test details
++  // (the DB only stores summary data, not full test results)
++  const fullScanResult = await scan(site);
++
++  // Build details URL using configurable base URL
++  let detailsUrl;
++  if (CONFIG.api.baseUrl) {
++    detailsUrl = `${CONFIG.api.baseUrl}/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
++  } else {
++    detailsUrl = `https://developer.mozilla.org/en-US/observatory/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
++  }
++
++  // Remove scoreDescription from tests as done in scan.js
++  const tests = Object.fromEntries(
++    Object.entries(fullScanResult.tests).map(([key, test]) => {
++      const { scoreDescription, ...rest } = test;
++      return [key, rest];
++    })
++  );
++
++  // Build the response object explicitly
++  const response = {
++    id: scanRow.id,
++    details_url: detailsUrl,
++    algorithm_version: scanRow.algorithm_version,
++    scanned_at: scanRow.start_time,
++    error: scanRow.error,
++    grade: scanRow.grade,
++    score: scanRow.score,
++    status_code: scanRow.status_code,
++    tests_failed: scanRow.tests_failed,
++    tests_passed: scanRow.tests_passed,
++    tests_quantity: scanRow.tests_quantity,
++    fullDetails: {
++      scan: fullScanResult.scan,
++      tests: tests,
++    },
++  };
++
++  return response;
++}
+diff --git a/src/api/v2/scan/index.js b/src/api/v2/scan/index.js
+index 9ce5fc8..a496282 100644
+--- a/src/api/v2/scan/index.js
++++ b/src/api/v2/scan/index.js
+@@ -43,6 +43,14 @@ async function scanOrReturnRecent(_fastify, pool, site, age) {
+   }
+ 
+   scanRow.scanned_at = scanRow.start_time;
+-  const siteLink = `https://developer.mozilla.org/en-US/observatory/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
++
++  // Build details URL using configurable base URL
++  let siteLink;
++  if (CONFIG.api.baseUrl) {
++    siteLink = `${CONFIG.api.baseUrl}/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
++  } else {
++    siteLink = `https://developer.mozilla.org/en-US/observatory/analyze?host=${encodeURIComponent(site.asSiteKey())}`;
++  }
++
+   return { details_url: siteLink, ...scanRow };
+ }
+diff --git a/src/config.js b/src/config.js
+index b8c0cd5..baab226 100644
+--- a/src/config.js
++++ b/src/config.js
+@@ -68,6 +68,12 @@ const SCHEMA = {
+     },
+   },
+   api: {
++    baseUrl: {
++      doc: "Base URL for details_url in scan responses",
++      format: "String",
++      default: "",
++      env: "HTTPOBS_BASE_URL",
++    },
+     cooldown: {
+       doc: "Cached result time for API V2, in Seconds. Defaults to 1 minute",
+       format: "nat",
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -43,7 +41,7 @@ services:
       PGPORT: 5432
       HTTPOBS_BASE_URL: http://10.127.10.4:8080
     ports:
-      - "10.127.10.4:8080:8080"
+      - "3000:8080"
     volumes:
       - ./config:/app/config
       - ./logs:/logs
@@ -58,6 +56,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    entrypoint: ["/home/node/app/docker-entrypoint.sh"]
     command: sh -c "node src/api/index.js 2>&1 | tee -a /logs/observatory-api.log"
 
 volumes:
