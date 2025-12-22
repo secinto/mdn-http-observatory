@@ -10,3 +10,4 @@ mdn-observatory-webext/dist
 compare_output.txt
 load-script.js
 .vscode/
+logs/
