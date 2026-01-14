@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__morph-mcp__warpgrep_codebase_search",
+      "Bash(npm run lint:*)",
+      "Bash(npm run)",
+      "Bash(npm run tsc:*)",
+      "Bash(timeout 5 npm run dev:*)",
+      "Bash(node -e:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
