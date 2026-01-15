@@ -1,0 +1,198 @@
+{
+  "id": 12345678,
+  "details_url": "https://developer.mozilla.org/en-US/observatory/analyze?host=www.secinto.com",
+  "algorithm_version": 4,
+  "scanned_at": "2026-01-15T14:30:25.123Z",
+  "error": null,
+  "grade": "A+",
+  "score": 105,
+  "status_code": 200,
+  "tests_failed": 0,
+  "tests_passed": 10,
+  "tests_quantity": 10,
+  "fullDetails": {
+    "scan": {
+      "algorithmVersion": 4,
+      "grade": "A+",
+      "error": null,
+      "score": 105,
+      "statusCode": 200,
+      "testsFailed": 0,
+      "testsPassed": 10,
+      "testsQuantity": 10,
+      "responseHeaders": {
+        "content-type": "text/html; charset=utf-8",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "x-frame-options": "DENY",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "server": "nginx",
+        "date": "Wed, 15 Jan 2026 14:30:25 GMT"
+      }
+    },
+    "tests": {
+      "content-security-policy": {
+        "expectation": "csp-implemented-with-no-unsafe",
+        "pass": true,
+        "result": "csp-implemented-with-no-unsafe",
+        "scoreModifier": 10,
+        "name": "content-security-policy",
+        "title": "Content Security Policy",
+        "data": {
+          "default-src": ["'self'"],
+          "script-src": ["'self'"],
+          "style-src": ["'self'", "'unsafe-inline'"],
+          "img-src": ["'self'", "data:", "https:"],
+          "font-src": ["'self'"],
+          "connect-src": ["'self'"],
+          "frame-ancestors": ["'none'"],
+          "base-uri": ["'self'"],
+          "form-action": ["'self'"]
+        },
+        "policy": {
+          "antiClickjacking": {
+            "pass": true,
+            "description": "frame-ancestors 'none' prevents clickjacking"
+          },
+          "defaultNone": {
+            "pass": false,
+            "description": "default-src is not 'none'"
+          },
+          "insecureBaseUri": {
+            "pass": true,
+            "description": "base-uri is restrictive"
+          },
+          "insecureFormAction": {
+            "pass": true,
+            "description": "form-action is restrictive"
+          },
+          "insecureSchemeActive": {
+            "pass": true,
+            "description": "No insecure schemes in active content"
+          },
+          "insecureSchemePassive": {
+            "pass": true,
+            "description": "No insecure schemes in passive content"
+          },
+          "strictDynamic": {
+            "pass": false,
+            "description": "strict-dynamic not used"
+          },
+          "unsafeEval": {
+            "pass": true,
+            "description": "No unsafe-eval in script-src"
+          },
+          "unsafeInline": {
+            "pass": true,
+            "description": "No unsafe-inline in script-src"
+          },
+          "unsafeObjects": {
+            "pass": true,
+            "description": "object-src is restrictive or not present",
+            "info": "object-src defaults to default-src 'self'"
+          }
+        },
+        "http": true,
+        "meta": false
+      },
+      "cookies": {
+        "expectation": "cookies-secure-with-httponly-sessions-and-samesite",
+        "pass": true,
+        "result": "cookies-secure-with-httponly-sessions-and-samesite",
+        "scoreModifier": 0,
+        "name": "cookies",
+        "title": "Cookies",
+        "data": {},
+        "sameSite": true
+      },
+      "cross-origin-resource-sharing": {
+        "expectation": "cross-origin-resource-sharing-not-implemented",
+        "pass": true,
+        "result": "cross-origin-resource-sharing-not-implemented",
+        "scoreModifier": 0,
+        "name": "cross-origin-resource-sharing",
+        "title": "Cross Origin Resource Sharing",
+        "data": null
+      },
+      "cross-origin-resource-policy": {
+        "expectation": "cross-origin-resource-policy-implemented",
+        "pass": true,
+        "result": "cross-origin-resource-policy-implemented",
+        "scoreModifier": 0,
+        "name": "cross-origin-resource-policy",
+        "title": "Cross-Origin Resource Policy",
+        "data": "same-origin"
+      },
+      "redirection": {
+        "expectation": "redirection-to-https",
+        "pass": true,
+        "result": "redirection-to-https",
+        "scoreModifier": 0,
+        "name": "redirection",
+        "title": "Redirection",
+        "destination": "https://www.secinto.com/",
+        "redirects": true,
+        "route": [
+          "http://www.secinto.com/",
+          "https://www.secinto.com/"
+        ],
+        "statusCode": 301
+      },
+      "referrer-policy": {
+        "expectation": "referrer-policy-private",
+        "pass": true,
+        "result": "referrer-policy-private",
+        "scoreModifier": 5,
+        "name": "referrer-policy",
+        "title": "Referrer Policy",
+        "data": "strict-origin-when-cross-origin",
+        "http": true,
+        "meta": false
+      },
+      "strict-transport-security": {
+        "expectation": "hsts-implemented-max-age-at-least-six-months",
+        "pass": true,
+        "result": "hsts-preloaded",
+        "scoreModifier": 5,
+        "name": "strict-transport-security",
+        "title": "HTTP Strict Transport Security",
+        "data": "max-age=31536000; includeSubDomains; preload",
+        "includeSubDomains": true,
+        "maxAge": 31536000,
+        "preload": true,
+        "preloaded": false
+      },
+      "subresource-integrity": {
+        "expectation": "sri-implemented-and-external-scripts-loaded-securely",
+        "pass": true,
+        "result": "sri-implemented-and-external-scripts-loaded-securely",
+        "scoreModifier": 5,
+        "name": "subresource-integrity",
+        "title": "Subresource Integrity",
+        "data": {}
+      },
+      "x-content-type-options": {
+        "expectation": "x-content-type-options-nosniff",
+        "pass": true,
+        "result": "x-content-type-options-nosniff",
+        "scoreModifier": 0,
+        "name": "x-content-type-options",
+        "title": "X-Content-Type-Options",
+        "data": "nosniff"
+      },
+      "x-frame-options": {
+        "expectation": "x-frame-options-sameorigin-or-deny",
+        "pass": true,
+        "result": "x-frame-options-sameorigin-or-deny",
+        "scoreModifier": 0,
+        "name": "x-frame-options",
+        "title": "X-Frame-Options",
+        "data": "DENY"
+      }
+    }
+  }
+}

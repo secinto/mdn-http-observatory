@@ -1,0 +1,167 @@
+{
+  "id": 12345679,
+  "details_url": "https://developer.mozilla.org/en-US/observatory/analyze?host=www.google.com",
+  "algorithm_version": 4,
+  "scanned_at": "2026-01-15T14:30:30.456Z",
+  "error": null,
+  "grade": "B+",
+  "score": 70,
+  "status_code": 200,
+  "tests_failed": 3,
+  "tests_passed": 7,
+  "tests_quantity": 10,
+  "fullDetails": {
+    "scan": {
+      "algorithmVersion": 4,
+      "grade": "B+",
+      "error": null,
+      "score": 70,
+      "statusCode": 200,
+      "testsFailed": 3,
+      "testsPassed": 7,
+      "testsQuantity": 10,
+      "responseHeaders": {
+        "content-type": "text/html; charset=UTF-8",
+        "strict-transport-security": "max-age=31536000",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0",
+        "x-content-type-options": "nosniff",
+        "content-encoding": "gzip",
+        "server": "gws",
+        "date": "Wed, 15 Jan 2026 14:30:30 GMT",
+        "cache-control": "private, max-age=0",
+        "cross-origin-opener-policy": "same-origin-allow-popups"
+      }
+    },
+    "tests": {
+      "content-security-policy": {
+        "expectation": "csp-implemented-with-no-unsafe",
+        "pass": false,
+        "result": "csp-not-implemented",
+        "scoreModifier": -25,
+        "name": "content-security-policy",
+        "title": "Content Security Policy",
+        "data": null,
+        "policy": null,
+        "http": false,
+        "meta": false
+      },
+      "cookies": {
+        "expectation": "cookies-secure-with-httponly-sessions-and-samesite",
+        "pass": true,
+        "result": "cookies-secure-with-httponly-sessions-and-samesite",
+        "scoreModifier": 0,
+        "name": "cookies",
+        "title": "Cookies",
+        "data": {
+          "NID": {
+            "domain": ".google.com",
+            "expires": "2026-07-17T14:30:30.000Z",
+            "httponly": true,
+            "path": "/",
+            "samesite": "none",
+            "secure": true
+          },
+          "1P_JAR": {
+            "domain": ".google.com",
+            "expires": "2026-02-14T14:30:30.000Z",
+            "httponly": false,
+            "path": "/",
+            "samesite": "none",
+            "secure": true
+          }
+        },
+        "sameSite": true
+      },
+      "cross-origin-resource-sharing": {
+        "expectation": "cross-origin-resource-sharing-not-implemented",
+        "pass": true,
+        "result": "cross-origin-resource-sharing-not-implemented",
+        "scoreModifier": 0,
+        "name": "cross-origin-resource-sharing",
+        "title": "Cross Origin Resource Sharing",
+        "data": null
+      },
+      "cross-origin-resource-policy": {
+        "expectation": "cross-origin-resource-policy-implemented",
+        "pass": false,
+        "result": "cross-origin-resource-policy-not-implemented",
+        "scoreModifier": 0,
+        "name": "cross-origin-resource-policy",
+        "title": "Cross-Origin Resource Policy",
+        "data": null
+      },
+      "redirection": {
+        "expectation": "redirection-to-https",
+        "pass": true,
+        "result": "redirection-to-https",
+        "scoreModifier": 0,
+        "name": "redirection",
+        "title": "Redirection",
+        "destination": "https://www.google.com/",
+        "redirects": true,
+        "route": [
+          "http://www.google.com/",
+          "https://www.google.com/"
+        ],
+        "statusCode": 301
+      },
+      "referrer-policy": {
+        "expectation": "referrer-policy-private",
+        "pass": false,
+        "result": "referrer-policy-not-implemented",
+        "scoreModifier": -5,
+        "name": "referrer-policy",
+        "title": "Referrer Policy",
+        "data": null,
+        "http": false,
+        "meta": false
+      },
+      "strict-transport-security": {
+        "expectation": "hsts-implemented-max-age-at-least-six-months",
+        "pass": true,
+        "result": "hsts-implemented-max-age-at-least-six-months",
+        "scoreModifier": 0,
+        "name": "strict-transport-security",
+        "title": "HTTP Strict Transport Security",
+        "data": "max-age=31536000",
+        "includeSubDomains": false,
+        "maxAge": 31536000,
+        "preload": false,
+        "preloaded": true
+      },
+      "subresource-integrity": {
+        "expectation": "sri-implemented-and-external-scripts-loaded-securely",
+        "pass": true,
+        "result": "sri-not-implemented-but-external-scripts-loaded-securely",
+        "scoreModifier": 0,
+        "name": "subresource-integrity",
+        "title": "Subresource Integrity",
+        "data": {
+          "https://www.gstatic.com/og/_/js/k=og.qtm.en_US.js": {
+            "crossorigin": null,
+            "integrity": null
+          }
+        }
+      },
+      "x-content-type-options": {
+        "expectation": "x-content-type-options-nosniff",
+        "pass": true,
+        "result": "x-content-type-options-nosniff",
+        "scoreModifier": 0,
+        "name": "x-content-type-options",
+        "title": "X-Content-Type-Options",
+        "data": "nosniff"
+      },
+      "x-frame-options": {
+        "expectation": "x-frame-options-sameorigin-or-deny",
+        "pass": true,
+        "result": "x-frame-options-sameorigin-or-deny",
+        "scoreModifier": 0,
+        "name": "x-frame-options",
+        "title": "X-Frame-Options",
+        "data": "SAMEORIGIN"
+      }
+    }
+  }
+}
