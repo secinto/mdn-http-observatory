@@ -1,0 +1,18 @@
+# Sample URLs file for concurrent-scan.sh
+# Lines starting with # are comments and will be ignored
+# Empty lines are also ignored
+
+# Simple hostnames (will use default port 443)
+mozilla.org
+github.com
+google.com
+
+# Hostnames with custom ports
+example.com:8443
+
+# Full URLs (protocol and path will be stripped, only host:port used)
+https://developer.mozilla.org
+https://www.cloudflare.com/path/to/page
+
+# URL with custom port
+https://api.example.com:8443/api/v1/endpoint
