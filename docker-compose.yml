@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: observatory
       POSTGRES_DB: observatory
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./logs:/logs
@@ -41,7 +41,8 @@ services:
       PGPORT: 5432
       HTTPOBS_BASE_URL: http://10.127.10.4:8080
     ports:
-      - "3001:8080"
+      - "192.168.195.120:3001:8080"
+      - "10.127.10.3:3001:8080"
     volumes:
       - ./config:/app/config
       - ./logs:/logs
