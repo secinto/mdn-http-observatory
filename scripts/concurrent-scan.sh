@@ -261,29 +261,70 @@ scan_url() {
     return 1
 }
 
-# Export function for use with xargs/parallel
-export -f scan_url log_success log_error log_warning log_verbose parse_url
+# Process a single parsed URL (hostname:port format)
+# This function is called by xargs and must be self-contained
+process_parsed_url() {
+    local parsed="$1"
+    local hostname="${parsed%:*}"
+    local port="${parsed##*:}"
+    local host_param="${hostname}:${port}"
+    local timestamp
+    local output_file
+    local http_code
+    local attempt
 
-# Process a single line from input file
-process_line() {
-    local line="$1"
-    local parsed
-    local hostname
-    local port
+    timestamp="$(date +%Y%m%d_%H%M%S)"
+    output_file="${OUTPUT_DIR}/${hostname}_${timestamp}_${port}.json"
 
-    parsed="$(parse_url "$line")"
+    # Logging functions
+    log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
+    log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+    log_verbose() { if [[ "$VERBOSE" == true ]]; then echo -e "${BLUE}[DEBUG]${NC} $*"; fi; }
 
-    if [[ -z "$parsed" ]]; then
-        return 0  # Skip empty/invalid lines
-    fi
+    log_verbose "Scanning ${host_param}..."
 
-    hostname="${parsed%:*}"
-    port="${parsed##*:}"
+    for ((attempt=1; attempt<=RETRIES; attempt++)); do
+        local temp_response
+        temp_response="$(mktemp)"
 
-    scan_url "$hostname" "$port"
+        http_code=$(curl -s -w "%{http_code}" \
+            --max-time "$TIMEOUT" \
+            -X POST \
+            -o "$temp_response" \
+            "${SCAN_API_URL}/api/v2/scanFullDetails?host=${host_param}" 2>/dev/null) || http_code="000"
+
+        if [[ "$http_code" == "200" ]]; then
+            mv "$temp_response" "$output_file"
+            log_success "${hostname}:${port} -> $(basename "$output_file")"
+            echo "1" >> "${TEMP_DIR}/success.count"
+            return 0
+        elif [[ "$http_code" == "422" ]]; then
+            local error_msg
+            error_msg=$(cat "$temp_response" 2>/dev/null | grep -o '"message":"[^"]*"' | cut -d'"' -f4 || echo "Validation error")
+            rm -f "$temp_response"
+            log_error "${hostname}:${port} - ${error_msg} (HTTP ${http_code})"
+            echo "{\"error\": \"validation_error\", \"message\": \"${error_msg}\", \"http_code\": ${http_code}, \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
+            echo "1" >> "${TEMP_DIR}/failed.count"
+            return 1
+        else
+            rm -f "$temp_response"
+            if [[ $attempt -lt $RETRIES ]]; then
+                log_verbose "Attempt $attempt failed for ${host_param} (HTTP ${http_code}), retrying..."
+                sleep $((attempt * 2))
+            fi
+        fi
+    done
+
+    log_error "${hostname}:${port} - Failed after ${RETRIES} attempts"
+    echo "{\"error\": \"scan_failed\", \"message\": \"Failed after ${RETRIES} attempts\", \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
+    echo "1" >> "${TEMP_DIR}/failed.count"
+    return 1
 }
 
-export -f process_line
+# Export function and variables for use with xargs
+export -f process_parsed_url
+export SCAN_API_URL OUTPUT_DIR RETRIES TIMEOUT VERBOSE TEMP_DIR
+export RED GREEN YELLOW BLUE NC
 
 # Main scanning function
 run_scans() {
@@ -313,81 +354,9 @@ run_scans() {
     echo ""
 
     # Process URLs in parallel using xargs
+    # Using exported function to avoid command line length issues
     printf '%s\n' "${valid_urls[@]}" | \
-        xargs -P "$CONCURRENCY" -I {} bash -c '
-            # Re-source required variables and functions
-            SCAN_API_URL='"'$SCAN_API_URL'"'
-            OUTPUT_DIR='"'$OUTPUT_DIR'"'
-            RETRIES='"$RETRIES"'
-            TIMEOUT='"$TIMEOUT"'
-            VERBOSE='"$VERBOSE"'
-            TEMP_DIR='"'$TEMP_DIR'"'
-            DEFAULT_PORT='"$DEFAULT_PORT"'
-
-            # Colors
-            if [[ -t 1 ]]; then
-                RED="\033[0;31m"
-                GREEN="\033[0;32m"
-                YELLOW="\033[0;33m"
-                BLUE="\033[0;34m"
-                NC="\033[0m"
-            else
-                RED=""
-                GREEN=""
-                YELLOW=""
-                BLUE=""
-                NC=""
-            fi
-
-            log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
-            log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
-            log_verbose() { if [[ "$VERBOSE" == true ]]; then echo -e "${BLUE}[DEBUG]${NC} $*"; fi; }
-
-            parsed="{}"
-            hostname="${parsed%:*}"
-            port="${parsed##*:}"
-
-            timestamp="$(date +%Y%m%d_%H%M%S)"
-            output_file="${OUTPUT_DIR}/${hostname}_${timestamp}_${port}.json"
-            host_param="${hostname}:${port}"
-
-            log_verbose "Scanning ${host_param}..."
-
-            for ((attempt=1; attempt<=RETRIES; attempt++)); do
-                temp_response="$(mktemp)"
-
-                http_code=$(curl -s -w "%{http_code}" \
-                    --max-time "$TIMEOUT" \
-                    -X POST \
-                    -o "$temp_response" \
-                    "${SCAN_API_URL}/api/v2/scanFullDetails?host=${host_param}" 2>/dev/null) || http_code="000"
-
-                if [[ "$http_code" == "200" ]]; then
-                    mv "$temp_response" "$output_file"
-                    log_success "${hostname}:${port} -> $(basename "$output_file")"
-                    echo "1" >> "${TEMP_DIR}/success.count"
-                    exit 0
-                elif [[ "$http_code" == "422" ]]; then
-                    error_msg=$(cat "$temp_response" 2>/dev/null | grep -o "\"message\":\"[^\"]*\"" | cut -d"\"" -f4 || echo "Validation error")
-                    rm -f "$temp_response"
-                    log_error "${hostname}:${port} - ${error_msg} (HTTP ${http_code})"
-                    echo "{\"error\": \"validation_error\", \"message\": \"${error_msg}\", \"http_code\": ${http_code}, \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
-                    echo "1" >> "${TEMP_DIR}/failed.count"
-                    exit 1
-                else
-                    rm -f "$temp_response"
-                    if [[ $attempt -lt $RETRIES ]]; then
-                        log_verbose "Attempt $attempt failed for ${host_param} (HTTP ${http_code}), retrying..."
-                        sleep $((attempt * 2))
-                    fi
-                fi
-            done
-
-            log_error "${hostname}:${port} - Failed after ${RETRIES} attempts"
-            echo "{\"error\": \"scan_failed\", \"message\": \"Failed after ${RETRIES} attempts\", \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
-            echo "1" >> "${TEMP_DIR}/failed.count"
-            exit 1
-        '
+        xargs -P "$CONCURRENCY" -I {} bash -c 'process_parsed_url "$@"' _ {}
 
     echo ""
 }
@@ -477,9 +446,8 @@ main() {
     fi
 
     if [[ -z "$OUTPUT_DIR" ]]; then
-        log_error "Output directory is required (-o)"
-        usage
-        exit 1
+        OUTPUT_DIR="results"
+        log_info "No output directory specified. Using default: $OUTPUT_DIR"
     fi
 
     # Validate input file exists
