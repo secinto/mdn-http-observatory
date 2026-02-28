@@ -39,7 +39,8 @@ async function scanOrReturnRecent(_fastify, pool, site, age) {
   let scanRow = await selectScanLatestScanBySite(pool, site.asSiteKey(), age);
   if (!scanRow) {
     // do a rescan
-    scanRow = await executeScan(pool, site);
+    const result = await executeScan(pool, site);
+    scanRow = result.scanRow;
   }
 
   scanRow.scanned_at = scanRow.start_time;

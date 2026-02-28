@@ -245,7 +245,7 @@ export function hydrateTests(tests) {
  *
  * @param {Pool} pool
  * @param {import("../../site.js").Site} site
- * @returns {Promise<import("../../database/repository.js").ScanRow>}
+ * @returns {Promise<{scanRow: import("../../database/repository.js").ScanRow, scanResult: import("../../types.js").ScanResult}>}
  */
 export async function executeScan(pool, site) {
   const siteId = await ensureSite(pool, site.asSiteKey());
@@ -270,5 +270,5 @@ export async function executeScan(pool, site) {
     }
   }
   scanRow = await insertTestResults(pool, siteId, scanId, scanResult);
-  return scanRow;
+  return { scanRow, scanResult };
 }

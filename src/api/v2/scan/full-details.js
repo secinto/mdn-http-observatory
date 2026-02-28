@@ -82,15 +82,17 @@ export default async function (fastify) {
  */
 async function scanOrReturnRecentWithFullDetails(pool, site, age) {
   let scanRow = await selectScanLatestScanBySite(pool, site.asSiteKey(), age);
+  let fullScanResult;
 
   if (!scanRow) {
-    // Do a fresh scan - this will save to DB and return scanRow
-    scanRow = await executeScan(pool, site);
+    // Do a fresh scan - this returns BOTH scanRow and full results
+    const result = await executeScan(pool, site);
+    scanRow = result.scanRow;
+    fullScanResult = result.scanResult;
+  } else {
+    // Cached scan exists, but we need full details, so scan again
+    fullScanResult = await scan(site);
   }
-
-  // Always run a fresh scan to get the full test details
-  // (the DB only stores summary data, not full test results)
-  const fullScanResult = await scan(site);
 
   // Build details URL using configurable base URL
   let detailsUrl;
