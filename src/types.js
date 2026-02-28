@@ -83,6 +83,8 @@ export class Requests {
   responses;
   /** @type {Session | null} */
   session;
+  /** @type {string | null} */
+  connectionError = null;
 
   /**
    *

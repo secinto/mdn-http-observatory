@@ -32,6 +32,12 @@ export async function retrieve(site, options = {}) {
     return retrievals;
   }
 
+  // Capture connection error details when both HTTP and HTTPS fail
+  if (!httpSession.response && !httpsSession.response) {
+    retrievals.connectionError =
+      httpsSession.errorCode || httpSession.errorCode || "UNKNOWN";
+  }
+
   retrievals.responses.http = httpSession.response;
   retrievals.responses.https = httpsSession.response;
 

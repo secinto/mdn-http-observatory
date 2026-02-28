@@ -40,6 +40,8 @@ services:
       PGPASSWORD: observatory
       PGPORT: 5432
       HTTPOBS_BASE_URL: http://10.127.10.4:8080
+      ABORT_TIMEOUT: 30000
+      CLIENT_TIMEOUT: 25000
     ports:
       - "192.168.195.120:3001:8080"
       - "10.127.10.3:3001:8080"

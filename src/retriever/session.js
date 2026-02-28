@@ -58,6 +58,10 @@ export class Session {
   redirectCount;
   /** @type {CookieJar} */
   jar;
+  /** @type {any} */
+  error = null;
+  /** @type {string | null} */
+  errorCode = null;
 
   /**
    *
@@ -206,6 +210,9 @@ export class Session {
         await this.init();
         return this;
       }
+      // Store error information for better debugging
+      this.error = e;
+      this.errorCode = code;
       this.clientInstance = null;
       this.clientInstanceRecordingRedirects = null;
       this.response = null;

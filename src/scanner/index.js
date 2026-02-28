@@ -25,7 +25,10 @@ import { ALL_TESTS } from "../constants.js";
 export function analyzeScan(requests) {
   if (!requests.responses.auto) {
     // We cannot connect at all, abort the test.
-    throw new Error("The site seems to be down.");
+    const errorDetail = requests.connectionError
+      ? ` (${requests.connectionError})`
+      : "";
+    throw new Error(`The site seems to be down.${errorDetail}`);
   }
 
   // We allow 2xx, 3xx, 401 and 403 status codes
