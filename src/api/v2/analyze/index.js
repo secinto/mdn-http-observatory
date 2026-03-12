@@ -69,7 +69,8 @@ async function scanOrReturnRecent(_fastify, pool, site, age) {
   let scanRow = await selectScanLatestScanByHost(pool, site.asSiteKey(), age);
   if (!scanRow) {
     // do a rescan
-    scanRow = await executeScan(pool, site);
+    const result = await executeScan(pool, site);
+    scanRow = result.scanRow;
   }
   const scanId = scanRow.id;
   const siteId = scanRow.site_id;

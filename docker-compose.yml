@@ -1,53 +1,49 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: mdn-observatory-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: observatory
-      POSTGRES_DB: observatory
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-observatory}
+      POSTGRES_DB: ${POSTGRES_DB:-observatory}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${POSTGRES_BIND_HOST:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./logs:/logs
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-observatory}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - observatory-network
+    restart: unless-stopped
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["docker-entrypoint.sh postgres 2>&1 | tee -a /logs/postgres.log"]
 
   observatory:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mdn-observatory-api
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+        RUN_ID: ${RUN_ID:-local}
     environment:
       NODE_ENV: production
-      NODE_EXTRA_CA_CERTS: /app/node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem
+      NODE_EXTRA_CA_CERTS: /home/node/app/node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem
       PGHOST: postgres
-      PGDATABASE: observatory
-      PGUSER: postgres
-      PGPASSWORD: observatory
+      PGDATABASE: ${POSTGRES_DB:-observatory}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-observatory}
       PGPORT: 5432
-      HTTPOBS_BASE_URL: http://10.127.10.4:8080
-      ABORT_TIMEOUT: 30000
-      CLIENT_TIMEOUT: 25000
+      HTTPOBS_BASE_URL: ${HTTPOBS_BASE_URL:-http://localhost:${OBSERVATORY_PORT:-3001}}
+      ABORT_TIMEOUT: ${ABORT_TIMEOUT:-30000}
+      CLIENT_TIMEOUT: ${CLIENT_TIMEOUT:-25000}
+      HTTPOBS_API_PORT: 8080
     ports:
-      - "192.168.195.120:3001:8080"
-      - "10.127.10.3:3001:8080"
-    volumes:
-      - ./config:/app/config
-      - ./logs:/logs
+      - "${OBSERVATORY_BIND_HOST:-0.0.0.0}:${OBSERVATORY_PORT:-3001}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,8 +55,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    entrypoint: ["/home/node/app/docker-entrypoint.sh"]
-    command: sh -c "node src/api/index.js 2>&1 | tee -a /logs/observatory-api.log"
 
 volumes:
   postgres_data:

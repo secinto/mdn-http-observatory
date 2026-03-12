@@ -123,14 +123,16 @@ async function scanSingleUrl(pool, url) {
  */
 async function scanWithFullDetails(pool, site, age) {
   let scanRow = await selectScanLatestScanBySite(pool, site.asSiteKey(), age);
+  let fullScanResult;
 
   if (!scanRow) {
-    scanRow = await executeScan(pool, site);
+    const result = await executeScan(pool, site);
+    scanRow = result.scanRow;
+    fullScanResult = result.scanResult;
+  } else {
+    // Cached scan exists, but we need full details, so scan again
+    fullScanResult = await scan(site);
   }
-
-  // Always run a fresh scan to get the full test details
-  // (the DB only stores summary data, not full test results)
-  const fullScanResult = await scan(site);
 
   // Build details URL using configurable base URL
   let detailsUrl;

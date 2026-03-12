@@ -1,14 +1,22 @@
 #!/bin/sh
-set -e
+set -eu
 
-echo "Waiting for PostgreSQL to be ready..."
-until pg_isready -h postgres -U postgres; do
-  echo "PostgreSQL is unavailable - sleeping"
+DB_HOST="${PGHOST:-postgres}"
+DB_PORT="${PGPORT:-5432}"
+DB_USER="${PGUSER:-postgres}"
+
+printf 'Waiting for PostgreSQL to be ready at %s:%s...
+' "$DB_HOST" "$DB_PORT"
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; do
+  printf 'PostgreSQL is unavailable - sleeping
+'
   sleep 2
 done
 
-echo "PostgreSQL is up - executing migrations"
-npm run migrate
+printf 'PostgreSQL is up - executing migrations
+'
+node -e 'import("./src/database/migrate.js").then((m) => m.migrateDatabase())'
 
-echo "Starting application"
+printf 'Starting application
+'
 exec "$@"
