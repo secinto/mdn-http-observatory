@@ -94,6 +94,19 @@ npm start
 
 The server is listening on your local interface on port `8080`. You can check the root path by opening <http://localhost:8080/> in your browser or `curl` the URL. The server should respond with `Welcome to the MDN Observatory!`.
 
+## Docker and Hardened Deployment
+
+For containerized development and deployment, see `DOCKER.md`.
+
+That document covers:
+- the base Compose setup
+- the hardened overlay in `docker-compose.hardened.yml`
+- parallel validation on alternate ports before cutover
+- promotion and rollback commands for the main deployment
+- CI image scanning and supply-chain metadata changes
+
+The primary health/version endpoint for Docker deployments is `GET /api/v2/version`.
+
 ## JSON API
 
 **Note:** We provide these endpoints on our public deployment of HTTP Observatory at <https://observatory-api.mdn.mozilla.net/>
