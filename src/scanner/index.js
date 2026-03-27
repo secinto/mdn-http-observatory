@@ -84,6 +84,14 @@ export function analyzeScan(requests) {
     return obj;
   }, /** @type {TestMap} */ ({}));
 
+  const defaultConnectionInfo = {
+    certificateVerified: true,
+    certificateError: null,
+    legacyTlsRenegotiation: false,
+    fallbacksApplied: [],
+  };
+  const connectionInfo = requests.session?.connectionInfo ?? defaultConnectionInfo;
+
   return {
     scan: {
       algorithmVersion: ALGORITHM_VERSION,
@@ -95,6 +103,7 @@ export function analyzeScan(requests) {
       testsPassed: testsPassed,
       testsQuantity: NUM_TESTS,
       responseHeaders: responseHeaders,
+      connectionInfo: connectionInfo,
     },
     tests,
   };

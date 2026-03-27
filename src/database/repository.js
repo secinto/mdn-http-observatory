@@ -68,6 +68,7 @@ export const ScanState = {
  * @property {string | null} error
  * @property {Object | null} response_headers
  * @property {number | null} status_code
+ * @property {Object | null} connection_info
  */
 
 /**
@@ -138,9 +139,9 @@ export async function insertTestResults(pool, siteId, scanId, scanResult) {
   const result = await pool.query(
     `UPDATE scans
       SET (end_time, tests_failed, tests_passed, grade, score,
-      state, response_headers, status_code, algorithm_version, tests_quantity, error) =
-      (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      WHERE id = $11
+      state, response_headers, status_code, algorithm_version, tests_quantity, error, connection_info) =
+      (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      WHERE id = $12
       RETURNING *`,
     [
       scan.testsFailed,
@@ -153,6 +154,7 @@ export async function insertTestResults(pool, siteId, scanId, scanResult) {
       scan.algorithmVersion,
       scan.testsQuantity,
       scan.error,
+      JSON.stringify(scan.connectionInfo),
       scanId,
     ]
   );

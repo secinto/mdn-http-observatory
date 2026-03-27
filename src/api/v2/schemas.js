@@ -39,6 +39,15 @@ const scan = {
     tests_quantity: {
       type: "number",
     },
+    connection_info: {
+      type: ["object", "null"],
+      properties: {
+        certificateVerified: { type: "boolean" },
+        certificateError: { type: ["string", "null"] },
+        legacyTlsRenegotiation: { type: "boolean" },
+        fallbacksApplied: { type: "array", items: { type: "string" } },
+      },
+    },
   },
 };
 
@@ -174,6 +183,15 @@ const scanResponse = {
     },
     tests_quantity: {
       type: "number",
+    },
+    connection_info: {
+      type: ["object", "null"],
+      properties: {
+        certificateVerified: { type: "boolean" },
+        certificateError: { type: ["string", "null"] },
+        legacyTlsRenegotiation: { type: "boolean" },
+        fallbacksApplied: { type: "array", items: { type: "string" } },
+      },
     },
   },
 };

@@ -301,6 +301,7 @@ export class Policy {
  * @prop {number} testsPassed
  * @prop {number} testsQuantity
  * @prop {number} statusCode
+ * @prop {{ certificateVerified: boolean, certificateError: string|null, legacyTlsRenegotiation: boolean, fallbacksApplied: string[] }} connectionInfo
  */
 
 /**

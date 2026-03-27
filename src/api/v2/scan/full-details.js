@@ -34,6 +34,15 @@ const scanFullDetailsSchema = {
         tests_failed: { type: "number" },
         tests_passed: { type: "number" },
         tests_quantity: { type: "number" },
+        connection_info: {
+          type: ["object", "null"],
+          properties: {
+            certificateVerified: { type: "boolean" },
+            certificateError: { type: ["string", "null"] },
+            legacyTlsRenegotiation: { type: "boolean" },
+            fallbacksApplied: { type: "array", items: { type: "string" } },
+          },
+        },
         fullDetails: {
           type: "object",
           properties: {
@@ -123,6 +132,7 @@ async function scanOrReturnRecentWithFullDetails(pool, site, age) {
     tests_failed: scanRow.tests_failed,
     tests_passed: scanRow.tests_passed,
     tests_quantity: scanRow.tests_quantity,
+    connection_info: scanRow.connection_info || null,
     fullDetails: {
       scan: fullScanResult.scan,
       tests: tests,

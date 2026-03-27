@@ -65,6 +65,13 @@ export class Session {
   errorCode = null;
   /** @type {boolean} */
   legacyTlsRetried = false;
+  /** @type {{ certificateVerified: boolean, certificateError: string|null, legacyTlsRenegotiation: boolean, fallbacksApplied: string[] }} */
+  connectionInfo = {
+    certificateVerified: true,
+    certificateError: null,
+    legacyTlsRenegotiation: false,
+    fallbacksApplied: [],
+  };
 
   /**
    *
@@ -183,6 +190,9 @@ export class Session {
           .rejectUnauthorized
       ) {
         // retrying without TLS verification
+        this.connectionInfo.certificateVerified = false;
+        this.connectionInfo.certificateError = code;
+        this.connectionInfo.fallbacksApplied.push("certificate-verification-disabled");
         this.redirectHistory = [];
 
         this.clientInstanceRecordingRedirects = axios.create({
@@ -224,6 +234,8 @@ export class Session {
         String(e.message).includes("legacy renegotiation")
       ) {
         this.legacyTlsRetried = true;
+        this.connectionInfo.legacyTlsRenegotiation = true;
+        this.connectionInfo.fallbacksApplied.push("legacy-tls-renegotiation");
         this.redirectHistory = [];
 
         const legacyAgentOptions = {
