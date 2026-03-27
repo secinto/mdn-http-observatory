@@ -7,7 +7,18 @@
       "Bash(npm run tsc:*)",
       "Bash(timeout 5 npm run dev:*)",
       "Bash(node -e:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(colgrep:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker compose:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(/tmp/test_scans.sh)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(/tmp/test_fcm_multiple.sh)"
     ]
   }
 }

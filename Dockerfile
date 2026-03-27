@@ -3,12 +3,14 @@ FROM node:24-bookworm AS build
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
+    git \
     libpq-dev \
     postgresql-client \
     python3 \
   && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /home/node/app /home/node/.npm \
+RUN mkdir -p /home/node/app /home/node/app/node_modules /home/node/.npm \
   && chown -R node:node /home/node/app /home/node/.npm
 
 WORKDIR /home/node/app

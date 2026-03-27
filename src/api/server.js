@@ -13,6 +13,7 @@ import statsApiV2 from "./v2/stats/index.js";
 import recommendationMatrixApiV2 from "./v2/recommendations/index.js";
 import version from "./version/index.js";
 import globalErrorHandler from "./global-error-handler.js";
+import healthApiV2 from "./health/index.js";
 import pool from "@fastify/postgres";
 import { poolOptions } from "../database/repository.js";
 import { CONFIG } from "../config.js";
@@ -137,6 +138,7 @@ export async function createServer() {
     server.register(statsApiV2, { prefix: "/api/v2" }),
     server.register(recommendationMatrixApiV2, { prefix: "/api/v2" }),
     server.register(version, { prefix: "/api/v2" }),
+    server.register(healthApiV2, { prefix: "/api/v2" }),
   ]);
 
   ["SIGINT", "SIGTERM"].forEach((signal) => {
