@@ -11,3 +11,4 @@ compare_output.txt
 load-script.js
 .vscode/
 logs/
+.claude/
