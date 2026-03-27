@@ -28,11 +28,12 @@ start:          ## Start existing containers
 stop:           ## Stop running containers (keep them)
 	$(DC) stop
 
-restart:        ## Restart containers
-	$(DC) restart
+restart:        ## Restart containers (waits for healthy)
+	$(DC) stop
+	$(DC) up -d --wait
 
 up: env         ## Build and start in detached mode
-	$(DC) up -d --build
+	$(DC) up -d --build --wait
 
 down:           ## Stop and remove containers & network
 	$(DC) down
