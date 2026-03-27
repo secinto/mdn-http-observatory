@@ -2,6 +2,7 @@ import axios, { AxiosHeaders } from "axios";
 import { CONFIG } from "../config.js";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { CookieJar } from "tough-cookie";
+import crypto from "crypto";
 
 const ABORT_TIMEOUT = CONFIG.retriever.abortTimeout;
 const CLIENT_TIMEOUT = CONFIG.retriever.clientTimeout;
@@ -62,6 +63,8 @@ export class Session {
   error = null;
   /** @type {string | null} */
   errorCode = null;
+  /** @type {boolean} */
+  legacyTlsRetried = false;
 
   /**
    *
@@ -207,6 +210,47 @@ export class Session {
         });
         this.clientInstance.interceptors.response.use(ic.response, ic.error);
         // retry with verification off
+        await this.init();
+        return this;
+      }
+      // Check for TLS protocol error (e.g. legacy renegotiation rejected by
+      // OpenSSL 3.x) and retry with SSL_OP_LEGACY_SERVER_CONNECT.
+      if (
+        code === "EPROTO" &&
+        !this.legacyTlsRetried &&
+        e &&
+        typeof e === "object" &&
+        "message" in e &&
+        String(e.message).includes("legacy renegotiation")
+      ) {
+        this.legacyTlsRetried = true;
+        this.redirectHistory = [];
+
+        const legacyAgentOptions = {
+          rejectUnauthorized: false,
+          cookies: { jar: this.jar },
+          secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
+        };
+
+        this.clientInstanceRecordingRedirects = axios.create({
+          ...this.clientInstanceRecordingRedirects.defaults,
+          httpsAgent: new HttpsCookieAgent(legacyAgentOptions),
+        });
+        const ic = this.createInterceptor();
+        this.clientInstanceRecordingRedirects.interceptors.response.use(
+          ic.response,
+          ic.error
+        );
+        if (!this.clientInstance) {
+          throw new Error("clientInstance is null");
+        }
+        this.clientInstance = axios.create({
+          ...this.clientInstance.defaults,
+          signal: AbortSignal.timeout(ABORT_TIMEOUT),
+          httpsAgent: new HttpsCookieAgent(legacyAgentOptions),
+        });
+        this.clientInstance.interceptors.response.use(ic.response, ic.error);
+        // retry with legacy TLS renegotiation enabled
         await this.init();
         return this;
       }

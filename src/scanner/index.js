@@ -31,9 +31,9 @@ export function analyzeScan(requests) {
     throw new Error(`The site seems to be down.${errorDetail}`);
   }
 
-  // We allow 2xx, 3xx, 401 and 403 status codes
+  // We allow 2xx, 3xx, and 4xx status codes (security headers are analyzable on any 4xx response)
   const { status } = requests.responses.auto;
-  if (status < 200 || (status >= 400 && ![401, 403].includes(status))) {
+  if (status < 200 || status >= 500) {
     throw new Error(
       `Site did respond with an unexpected HTTP status code ${status}.`
     );
