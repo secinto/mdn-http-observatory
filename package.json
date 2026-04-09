@@ -1,12 +1,18 @@
 {
   "name": "@mdn/mdn-http-observatory",
-  "version": "1.5.4",
+  "version": "1.6.1",
   "author": "Mozilla Developer Network",
   "description": "The MDN HTTP Observatory is a set of tools to analyze your website and inform you if you are utilizing the many available methods to secure it.",
   "main": "src/index.js",
-  "packageManager": "npm@11.6.2",
+  "packageManager": "npm@11.9.0",
   "engines": {
     "node": ">=24"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11.8.0"
+    }
   },
   "scripts": {
     "start": "NODE_EXTRA_CA_CERTS=node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem node src/api/index.js",
@@ -39,7 +45,7 @@
     "lefthook": "^2.0.14",
     "nodemon": "^3.1.10",
     "prettier-eslint": "^16.4.2",
-    "typescript": "^5.7.2"
+    "typescript": "^6.0.2"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",
@@ -55,17 +61,19 @@
     "dayjs": "^1.11.13",
     "fastify": "^5.4.0",
     "fastify-simple-form": "^3.0.0",
-    "htmlparser2": "^10.1.0",
+    "htmlparser2": "^12.0.0",
     "http-cookie-agent": "^7.0.1",
     "ip": "^2.0.1",
     "node_extra_ca_certs_mozilla_bundle": "^1.0.7",
     "pg": "^8.16.2",
     "pg-format": "^1.0.4",
-    "pg-native": "^3.5.2",
     "pg-pool": "^3.10.1",
     "postgrator": "^8.0.0",
     "postgrator-cli": "^9.0.0",
     "tldts": "^7.0.12",
     "tough-cookie": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "pg-native": "^3.7.0"
   }
 }
