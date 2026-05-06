@@ -12,3 +12,9 @@ load-script.js
 .vscode/
 logs/
 .claude/
+.github/workflows/
+.github/actions/
+.github/scripts/
+.github/dependabot.yml
+.github/release-please-config.json
+.github/release-please-manifest.json
