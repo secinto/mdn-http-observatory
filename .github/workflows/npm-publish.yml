@@ -1,0 +1,67 @@
+name: npm publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish (e.g. v1.6.0)"
+        required: true
+        type: string
+      dist-tag:
+        description: "npm dist-tag (e.g. latest, next, beta)"
+        required: false
+        type: string
+        default: "latest"
+  workflow_call:
+    inputs:
+      tag:
+        description: "Git tag to publish (e.g. v1.6.0)"
+        required: true
+        type: string
+      dist-tag:
+        description: "npm dist-tag (e.g. latest, next, beta)"
+        required: false
+        type: string
+        default: "latest"
+
+permissions:
+  contents: read
+  id-token: write # OIDC for npm Trusted Publishing
+
+jobs:
+  publish:
+    if: github.repository == 'mdn/mdn-http-observatory'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install npm@^11.8.0
+        run: npm install -g npm@^11.8.0
+
+      - name: Install
+        run: npm ci
+
+      # Backfill repository field for older tags.
+      # Otherwise npm provenance fails with error code E422.
+      - name: Ensure repository field in package.json
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          npm pkg set repository="$REPO_URL"
+          npm pkg fix
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance --tag ${{ inputs.dist-tag }}
