@@ -3,6 +3,7 @@ import { selectScanLatestScanByHost as selectScanLatestScanBySite } from "../../
 import { scan } from "../../../scanner/index.js";
 import { Site } from "../../../site.js";
 import { checkSitename, executeScan } from "../utils.js";
+import { SCHEMAS } from "../schemas.js";
 
 /**
  * @typedef {import("pg").Pool} Pool
@@ -10,65 +11,6 @@ import { checkSitename, executeScan } from "../utils.js";
 
 // Configuration
 const DEFAULT_CONCURRENCY = 5;
-const MAX_BATCH_SIZE = 10;
-
-// Schema for scanBatchFullDetails endpoint
-const scanBatchFullDetailsSchema = {
-  body: {
-    type: "object",
-    required: ["urls"],
-    properties: {
-      urls: {
-        type: "array",
-        items: { type: "string" },
-        minItems: 1,
-        maxItems: MAX_BATCH_SIZE,
-      },
-    },
-  },
-  response: {
-    200: {
-      type: "object",
-      additionalProperties: {
-        type: "object",
-        properties: {
-          success: { type: "boolean" },
-          // Success fields
-          id: { type: "number" },
-          details_url: { type: "string" },
-          algorithm_version: { type: "number" },
-          scanned_at: { type: "string" },
-          error: { type: ["string", "null"] },
-          grade: { type: ["string", "null"] },
-          score: { type: ["number", "null"] },
-          status_code: { type: ["number", "null"] },
-          tests_failed: { type: "number" },
-          tests_passed: { type: "number" },
-          tests_quantity: { type: "number" },
-          connection_info: {
-            type: ["object", "null"],
-            properties: {
-              certificateVerified: { type: "boolean" },
-              certificateError: { type: ["string", "null"] },
-              legacyTlsRenegotiation: { type: "boolean" },
-              fallbacksApplied: { type: "array", items: { type: "string" } },
-            },
-          },
-          fullDetails: {
-            type: "object",
-            properties: {
-              scan: { type: "object", additionalProperties: true },
-              tests: { type: "object", additionalProperties: true },
-            },
-          },
-          // Error fields
-          errorType: { type: "string" },
-          message: { type: "string" },
-        },
-      },
-    },
-  },
-};
 
 /**
  * Run async operations with concurrency limit
@@ -190,7 +132,7 @@ export default async function (fastify) {
 
   fastify.post(
     "/scanBatchFullDetails",
-    { schema: scanBatchFullDetailsSchema },
+    { schema: SCHEMAS.scanBatchFullDetails },
     async (request, _reply) => {
       const body = /** @type {{ urls: string[] }} */ (request.body);
       const urls = body.urls;

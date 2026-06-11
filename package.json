@@ -39,6 +39,7 @@
   "devDependencies": {
     "@faker-js/faker": "^10.0.0",
     "@supercharge/promise-pool": "^3.2.0",
+    "ajv": "^8.18.0",
     "@types/chai": "^5.2.2",
     "@types/convict": "^6.1.6",
     "@types/ip": "^1.1.3",
