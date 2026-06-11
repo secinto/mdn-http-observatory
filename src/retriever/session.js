@@ -192,7 +192,9 @@ export class Session {
         // retrying without TLS verification
         this.connectionInfo.certificateVerified = false;
         this.connectionInfo.certificateError = code;
-        this.connectionInfo.fallbacksApplied.push("certificate-verification-disabled");
+        this.connectionInfo.fallbacksApplied.push(
+          "certificate-verification-disabled"
+        );
         this.redirectHistory = [];
 
         this.clientInstanceRecordingRedirects = axios.create({

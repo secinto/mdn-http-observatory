@@ -90,7 +90,8 @@ export function analyzeScan(requests) {
     legacyTlsRenegotiation: false,
     fallbacksApplied: [],
   };
-  const connectionInfo = requests.session?.connectionInfo ?? defaultConnectionInfo;
+  const connectionInfo =
+    requests.session?.connectionInfo ?? defaultConnectionInfo;
 
   return {
     scan: {
