@@ -1,6 +1,6 @@
 {
   "name": "@mdn/mdn-http-observatory",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "author": "Mozilla Developer Network",
   "description": "The MDN HTTP Observatory is a set of tools to analyze your website and inform you if you are utilizing the many available methods to secure it.",
   "main": "src/index.js",
@@ -31,6 +31,10 @@
     "mdn-http-observatory-scan": "bin/wrapper.js"
   },
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdn/mdn-http-observatory.git"
+  },
   "license": "MPL-2.0",
   "devDependencies": {
     "@faker-js/faker": "^10.0.0",
@@ -54,7 +58,7 @@
     "@fastify/static": "^9.0.0",
     "@sentry/node": "^10.1.0",
     "axios": "^1.10.0",
-    "axios-cookiejar-support": "^6.0.2",
+    "axios-cookiejar-support": "^7.0.0",
     "change-case": "^5.4.4",
     "commander": "^14.0.0",
     "convict": "^6.2.4",
@@ -62,7 +66,7 @@
     "fastify": "^5.4.0",
     "fastify-simple-form": "^3.0.0",
     "htmlparser2": "^12.0.0",
-    "http-cookie-agent": "^7.0.1",
+    "http-cookie-agent": "^8.0.0",
     "ip": "^2.0.1",
     "node_extra_ca_certs_mozilla_bundle": "^1.0.7",
     "pg": "^8.16.2",
