@@ -77,6 +77,12 @@ describe(
           testsPassed: 8,
           testsQuantity: 9,
           error: "",
+          connectionInfo: {
+            certificateVerified: true,
+            certificateError: null,
+            legacyTlsRenegotiation: false,
+            fallbacksApplied: [],
+          },
           responseHeaders: {
             "content-type": "text/html; charset=utf-8",
             "transfer-encoding": "chunked",

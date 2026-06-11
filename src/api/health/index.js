@@ -15,6 +15,7 @@ export default async function (fastify) {
   const pool = fastify.pg.pool;
 
   fastify.get("/health", async (_request, reply) => {
+    /** @type {{ status: string, db: boolean, dns: boolean, error?: string }} */
     const result = { status: "ok", db: false, dns: false };
     const errors = [];
 
@@ -23,7 +24,7 @@ export default async function (fastify) {
       await pool.query("SELECT 1");
       result.db = true;
     } catch (err) {
-      errors.push(`db: ${err.message}`);
+      errors.push(`db: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     // 2. DNS resolution check — resolve a well-known external hostname
@@ -36,7 +37,7 @@ export default async function (fastify) {
       });
       result.dns = true;
     } catch (err) {
-      errors.push(`dns: ${err.message}`);
+      errors.push(`dns: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     if (errors.length > 0) {
