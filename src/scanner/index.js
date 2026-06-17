@@ -70,6 +70,36 @@ export function isContentlessAuthChallenge(headerValue) {
 }
 
 /**
+ * Protective response headers the Observatory grades. Used to decide whether an
+ * empty-body response still has something worth grading: if any of these is
+ * present, the response is graded even with no body.
+ * @type {ReadonlyArray<string>}
+ */
+const SECURITY_HEADERS = [
+  "strict-transport-security",
+  "content-security-policy",
+  "x-frame-options",
+  "x-content-type-options",
+  "referrer-policy",
+  "cross-origin-resource-policy",
+  "cross-origin-opener-policy",
+  "cross-origin-embedder-policy",
+  "permissions-policy",
+];
+
+/**
+ * True when the response carries at least one (non-empty) security header.
+ * @param {Record<string, any>} headers
+ * @returns {boolean}
+ */
+export function hasAnySecurityHeader(headers) {
+  return SECURITY_HEADERS.some((name) => {
+    const value = headers[name];
+    return value != null && String(value).trim() !== "";
+  });
+}
+
+/**
  * Error thrown when a scan is aborted before any test runs. Carries the
  * machine-readable reason and, when known, the observed HTTP status code so
  * downstream consumers can explain *why* a host was not scanned.
@@ -147,14 +177,17 @@ export function analyzeScan(requests) {
     );
   }
 
-  // A response with an explicitly empty body (Content-Length: 0) has no page
-  // content to grade. Narrow on purpose: only an explicit "0" triggers this — a
+  // An explicitly empty body (Content-Length: 0) that ALSO carries none of the
+  // security headers we grade has genuinely nothing to grade. We require both:
+  // an empty response that still sets e.g. HSTS or CSP is worth grading, and a
   // missing Content-Length (e.g. chunked responses) is left scannable so we
   // don't drop pages whose length the server simply didn't advertise.
   const contentLength = requests.responses.auto.headers["content-length"];
-  if (contentLength != null && String(contentLength).trim() === "0") {
+  const isEmptyBody =
+    contentLength != null && String(contentLength).trim() === "0";
+  if (isEmptyBody && !hasAnySecurityHeader(requests.responses.auto.headers)) {
     throw new ScanAbortedError(
-      `Site responded with an empty body (Content-Length: 0) and has no content to grade.`,
+      `Site responded with an empty body and no security headers; nothing to grade.`,
       ScanAbortReason.EMPTY_RESPONSE,
       status
     );

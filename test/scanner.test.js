@@ -133,7 +133,7 @@ describe("Scanner", () => {
       assert.equal(result.scan.statusCode, 401);
     });
 
-    it("does not scan an empty response (Content-Length: 0)", function () {
+    it("does not scan an empty response with no security headers (Content-Length: 0)", function () {
       const req = requestsWithStatus(200);
       req.responses.auto?.headers.set("content-length", "0");
       try {
@@ -146,6 +146,13 @@ describe("Scanner", () => {
           ScanAbortReason.EMPTY_RESPONSE
         );
       }
+    });
+
+    it("still scans an empty body that carries a security header", function () {
+      const req = requestsWithStatus(200);
+      req.responses.auto?.headers.set("content-length", "0");
+      req.responses.auto?.headers.set("strict-transport-security", "max-age=63072000");
+      assert.equal(analyzeScan(req).scan.statusCode, 200);
     });
 
     it("still scans when Content-Length is absent or non-zero", function () {
