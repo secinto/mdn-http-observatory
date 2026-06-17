@@ -102,6 +102,68 @@ npm start
 
 The server is listening on your local interface on port `8080`. You can check the root path by opening <http://localhost:8080/> in your browser or `curl` the URL. The server should respond with `Welcome to the MDN Observatory!`.
 
+## Scan eligibility (which responses are graded)
+
+Before any test runs, the scanner decides whether the host's response is worth
+grading. The grade reflects the **final** response after redirects are followed
+(HTTPS chain preferred), so the status code below is that terminal status.
+
+> **Note:** This is stricter and broader than upstream MDN HTTP Observatory,
+> which grades only `2xx`, `3xx`, `401` and `403`. This deployment grades most
+> `4xx` responses (security headers are emitted on them too) but drops `3xx`,
+> the non-representative `4xx` codes, and content-less responses.
+
+### By status code
+
+| Status                                  | Graded? | Why                                                                                   |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `1xx`                                   | ❌      | Informational / non-final                                                             |
+| `2xx`                                   | ✅      | Normal success                                                                        |
+| `3xx`                                   | ❌      | Redirects are already followed (≤10 hops); a surviving `3xx` is an unresolved redirect carrying only a `Location` header |
+| `400`, `402`, `405`, `406`, `451`, …    | ✅      | Most `4xx` — security headers are analyzable on error pages too                       |
+| `401`                                   | ⚠️      | Graded **unless** it is a Basic/Digest auth challenge (see gates)                     |
+| `403`                                   | ✅      | WAF / forbidden — usually still carries representative headers                        |
+| `404`, `408`, `410`, `429`              | ❌      | Non-representative: content absent (404/410), request timeout (408), rate-limited (429) |
+| `5xx`                                   | ❌      | Server erroring; headers likely come from an error handler                            |
+
+**In short:** graded set = `2xx` + `4xx` except `{404, 408, 410, 429}`, then
+subject to the content gates below.
+
+### Gates (evaluated in order)
+
+A response that fails any gate is not graded. The reason is machine-readable and
+surfaced in the scan output (see below).
+
+1. **Reachability** (`site-down`) — no HTTP or HTTPS response at all (DNS
+   failure, connection refused, TLS failure, timeout).
+2. **Status code** (`unexpected-status-code`) — status not in the graded set
+   above (`1xx`, `3xx`, `404/408/410/429`, `5xx`).
+3. **HTTP authentication** (`http-auth`) — a `401` whose `WWW-Authenticate`
+   advertises **Basic** or **Digest** (matched even in mixed challenges such as
+   `Negotiate, NTLM, Basic …`). These are browser-native challenges with an empty
+   body. App-level `401`s (e.g. `Bearer`/token APIs, or gated SPAs that still
+   render a page) are kept.
+4. **Empty body** (`empty-response`) — `Content-Length: 0` **and** the response
+   carries none of the graded security headers (HSTS, CSP, X-Frame-Options,
+   X-Content-Type-Options, Referrer-Policy, Cross-Origin-\*, Permissions-Policy).
+   An empty response that still sets a security header is graded; a missing
+   `Content-Length` (e.g. chunked responses) is left scannable.
+
+### Not-graded output
+
+When a host is not graded, the scan reports the reason instead of a grade. The
+CLI and the batch full-details API include `status_code` (the observed HTTP
+status, `null` when unreachable) and `not_scanned_reason` (one of the codes
+above):
+
+```json
+{
+  "error": "Site responded with an unresolved redirect (HTTP status code 302).",
+  "status_code": 302,
+  "not_scanned_reason": "unexpected-status-code"
+}
+```
+
 ## Docker and Hardened Deployment
 
 For containerized development and deployment, see `DOCKER.md`.
