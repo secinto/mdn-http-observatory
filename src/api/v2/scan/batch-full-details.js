@@ -55,12 +55,17 @@ async function scanSingleUrl(pool, url) {
 
     return await scanWithFullDetails(pool, site, CONFIG.api.cooldown);
   } catch (err) {
-    const error = /** @type {Error} */ (err);
+    const error = /** @type {any} */ (err);
     return {
       success: false,
       error: error.name || "error-unknown",
       errorType: error.constructor?.name || "Error",
       message: error.message || "Unknown error occurred",
+      // Structured reason a host could not be scanned, plus the HTTP status it
+      // responded with (null when the site was unreachable). Lets downstream
+      // consumers explain *why* a host has no grade.
+      status_code: error.siteStatusCode ?? null,
+      not_scanned_reason: error.scanAbortReason ?? null,
     };
   }
 }

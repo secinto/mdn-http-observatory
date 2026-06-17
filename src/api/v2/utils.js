@@ -256,7 +256,17 @@ export async function executeScan(pool, site) {
     scanResult = await scan(site);
   } catch (e) {
     if (e instanceof Error) {
-      await updateScanState(pool, scanId, ScanState.FAILED, e.message);
+      // Persist the site's HTTP status code (when the scan was aborted because
+      // of an unexpected/non-representative status) so the failed scan record
+      // explains why the host could not be graded.
+      const siteStatusCode = /** @type {any} */ (e).siteStatusCode ?? null;
+      await updateScanState(
+        pool,
+        scanId,
+        ScanState.FAILED,
+        e.message,
+        siteStatusCode
+      );
       throw new ScanFailedError(e);
     } else {
       const unknownError = new Error("Unknown error occurred");

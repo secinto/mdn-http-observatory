@@ -338,15 +338,23 @@ export async function selectTestResults(pool, scanId) {
  * @param {number} scanId
  * @param {ScanState} state
  * @param {string | null} error
+ * @param {number | null} [statusCode] - HTTP status the site responded with, when the
+ *   scan was aborted because of an unexpected/non-representative status code
  */
-export async function updateScanState(pool, scanId, state, error = null) {
+export async function updateScanState(
+  pool,
+  scanId,
+  state,
+  error = null,
+  statusCode = null
+) {
   if (error) {
     const result = await pool.query(
       `UPDATE scans
-        SET (state, end_time, error) = ($1, NOW(), $2)
-        WHERE id = $3
+        SET (state, end_time, error, status_code) = ($1, NOW(), $2, $3)
+        WHERE id = $4
         RETURNING *`,
-      [state, error, scanId]
+      [state, error, statusCode, scanId]
     );
     return result.rows[0];
   } else {

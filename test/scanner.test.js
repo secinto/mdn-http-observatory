@@ -1,8 +1,17 @@
 import { describe, it } from "node:test";
 import { assert } from "chai";
-import { scan } from "../src/scanner/index.js";
+import {
+  scan,
+  analyzeScan,
+  ScanAbortedError,
+  ScanAbortReason,
+} from "../src/scanner/index.js";
 import { Site } from "../src/site.js";
-import { fixtureRequests, scanWithRequests } from "./helpers.js";
+import {
+  emptyRequests,
+  fixtureRequests,
+  scanWithRequests,
+} from "./helpers.js";
 
 /** @typedef {import("../src/scanner/index.js").ScanResult} ScanResult */
 
@@ -55,5 +64,109 @@ describe("Scanner", () => {
       scanResult.scan.responseHeaders["content-type"],
       "text/html; charset=utf-8"
     );
+  });
+
+  describe("status code gating", () => {
+    /** @param {number} status */
+    const requestsWithStatus = (status) => {
+      const req = emptyRequests();
+      if (req.responses.auto) {
+        req.responses.auto.status = status;
+      }
+      return req;
+    };
+
+    // Allowed: 2xx and 4xx except the non-representative ones.
+    for (const status of [200, 204, 400, 401, 403, 405, 451]) {
+      it(`scans on HTTP ${status}`, function () {
+        const result = analyzeScan(requestsWithStatus(status));
+        assert.equal(result.scan.statusCode, status);
+      });
+    }
+
+    // Aborted: 1xx, all 3xx (unresolved redirects), non-representative 4xx
+    // (404/408/410/429) and 5xx.
+    for (const status of [199, 301, 302, 308, 404, 408, 410, 429, 500, 503]) {
+      it(`aborts on HTTP ${status} with the status code attached`, function () {
+        try {
+          analyzeScan(requestsWithStatus(status));
+          throw new Error("analyzeScan should have thrown");
+        } catch (e) {
+          assert.instanceOf(e, ScanAbortedError);
+          const err = /** @type {ScanAbortedError} */ (e);
+          assert.equal(err.scanAbortReason, ScanAbortReason.UNEXPECTED_STATUS_CODE);
+          assert.equal(err.siteStatusCode, status);
+          assert.match(e.message, new RegExp(`${status}`));
+        }
+      });
+    }
+
+    /** @param {number} status @param {string} wwwAuth */
+    const requestsWithAuth = (status, wwwAuth) => {
+      const req = requestsWithStatus(status);
+      req.responses.auto?.headers.set("www-authenticate", wwwAuth);
+      return req;
+    };
+
+    for (const wwwAuth of ['Basic realm="restricted"', "Digest realm=\"x\"", "Negotiate, NTLM, Basic realm=\"x\""]) {
+      it(`does not scan a Basic/Digest 401 (${wwwAuth})`, function () {
+        try {
+          analyzeScan(requestsWithAuth(401, wwwAuth));
+          throw new Error("analyzeScan should have thrown");
+        } catch (e) {
+          assert.instanceOf(e, ScanAbortedError);
+          assert.equal(
+            /** @type {ScanAbortedError} */ (e).scanAbortReason,
+            ScanAbortReason.HTTP_AUTH
+          );
+        }
+      });
+    }
+
+    it("still scans an app-level 401 (Bearer / no Basic challenge)", function () {
+      const result = analyzeScan(requestsWithAuth(401, "Bearer realm=\"api\""));
+      assert.equal(result.scan.statusCode, 401);
+    });
+
+    it("still scans a 401 with no WWW-Authenticate header", function () {
+      const result = analyzeScan(requestsWithStatus(401));
+      assert.equal(result.scan.statusCode, 401);
+    });
+
+    it("does not scan an empty response (Content-Length: 0)", function () {
+      const req = requestsWithStatus(200);
+      req.responses.auto?.headers.set("content-length", "0");
+      try {
+        analyzeScan(req);
+        throw new Error("analyzeScan should have thrown");
+      } catch (e) {
+        assert.instanceOf(e, ScanAbortedError);
+        assert.equal(
+          /** @type {ScanAbortedError} */ (e).scanAbortReason,
+          ScanAbortReason.EMPTY_RESPONSE
+        );
+      }
+    });
+
+    it("still scans when Content-Length is absent or non-zero", function () {
+      assert.equal(analyzeScan(requestsWithStatus(200)).scan.statusCode, 200);
+      const req = requestsWithStatus(200);
+      req.responses.auto?.headers.set("content-length", "1024");
+      assert.equal(analyzeScan(req).scan.statusCode, 200);
+    });
+
+    it("aborts as site-down when there is no response", function () {
+      const req = emptyRequests();
+      req.responses.auto = null;
+      try {
+        analyzeScan(req);
+        throw new Error("analyzeScan should have thrown");
+      } catch (e) {
+        assert.instanceOf(e, ScanAbortedError);
+        const err = /** @type {ScanAbortedError} */ (e);
+        assert.equal(err.scanAbortReason, ScanAbortReason.SITE_DOWN);
+        assert.equal(err.siteStatusCode, null);
+      }
+    });
   });
 });
