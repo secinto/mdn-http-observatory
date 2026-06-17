@@ -28,6 +28,7 @@ docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d --buil
 ```
 
 The hardened overlay currently adds:
+
 - `no-new-privileges` for both services
 - `read_only`, `tmpfs`, `cap_drop: [ALL]`, and `pids_limit` for the API container
 - an internal API healthcheck against `/api/v2/version`
@@ -69,37 +70,44 @@ The current PostgreSQL service reuses the existing `mdn-http-observatory_postgre
 ## Commands
 
 ### Start services
+
 ```bash
 docker compose up -d
 ```
 
 ### Start the hardened stack
+
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
 ```
 
 ### Stop services
+
 ```bash
 docker compose down
 ```
 
 ### Stop and remove volumes (fresh start)
+
 ```bash
 docker compose down -v
 ```
 
 ### View logs
+
 ```bash
 docker compose logs -f observatory
 docker compose logs -f postgres
 ```
 
 ### Rebuild after code changes
+
 ```bash
 docker compose up -d --build
 ```
 
 ### Access PostgreSQL directly
+
 ```bash
 docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
@@ -107,6 +115,7 @@ docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ## Configuration
 
 Docker Compose reads variables from `.env` automatically. The most relevant values are:
+
 - `OBSERVATORY_PORT` and `OBSERVATORY_BIND_HOST` for the published API endpoint
 - `POSTGRES_PORT`, `POSTGRES_BIND_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the database service
 - `HTTPOBS_BASE_URL` if the generated `details_url` must point at a public hostname instead of the local default
@@ -117,6 +126,7 @@ For non-Docker development, the application still supports the environment varia
 ## CI and image hardening
 
 The CI workflow now validates both the codebase and the image path:
+
 - the test workflow builds the Docker image locally in CI and scans it with Trivy
 - the reusable build workflow scans before push and emits SBOM/provenance metadata on published images
 - the runtime image is multi-stage and keeps build-only dependencies out of the final container

@@ -10,6 +10,12 @@
   "tests_failed": 3,
   "tests_passed": 7,
   "tests_quantity": 10,
+  "connection_info": {
+    "certificateVerified": true,
+    "certificateError": null,
+    "legacyTlsRenegotiation": false,
+    "fallbacksApplied": []
+  },
   "fullDetails": {
     "scan": {
       "algorithmVersion": 4,
@@ -31,6 +37,12 @@
         "date": "Wed, 15 Jan 2026 14:30:30 GMT",
         "cache-control": "private, max-age=0",
         "cross-origin-opener-policy": "same-origin-allow-popups"
+      },
+      "connectionInfo": {
+        "certificateVerified": true,
+        "certificateError": null,
+        "legacyTlsRenegotiation": false,
+        "fallbacksApplied": []
       }
     },
     "tests": {
@@ -100,10 +112,7 @@
         "title": "Redirection",
         "destination": "https://www.google.com/",
         "redirects": true,
-        "route": [
-          "http://www.google.com/",
-          "https://www.google.com/"
-        ],
+        "route": ["http://www.google.com/", "https://www.google.com/"],
         "statusCode": 301
       },
       "referrer-policy": {

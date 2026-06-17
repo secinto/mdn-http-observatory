@@ -196,6 +196,61 @@ const scanResponse = {
   },
 };
 
+// scanBatchFullDetails endpoint
+const MAX_BATCH_SIZE = 10;
+
+const scanBatchFullDetailsBody = {
+  type: "object",
+  required: ["urls"],
+  properties: {
+    urls: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 1,
+      maxItems: MAX_BATCH_SIZE,
+    },
+  },
+};
+
+// Per-host result object. Holds either success fields or error fields.
+const scanBatchFullDetailsItem = {
+  type: "object",
+  properties: {
+    success: { type: "boolean" },
+    // Success fields
+    id: { type: "number" },
+    details_url: { type: "string" },
+    algorithm_version: { type: "number" },
+    scanned_at: { type: "string" },
+    error: { type: ["string", "null"] },
+    grade: { type: ["string", "null"] },
+    score: { type: ["number", "null"] },
+    status_code: { type: ["number", "null"] },
+    tests_failed: { type: "number" },
+    tests_passed: { type: "number" },
+    tests_quantity: { type: "number" },
+    connection_info: {
+      type: ["object", "null"],
+      properties: {
+        certificateVerified: { type: "boolean" },
+        certificateError: { type: ["string", "null"] },
+        legacyTlsRenegotiation: { type: "boolean" },
+        fallbacksApplied: { type: "array", items: { type: "string" } },
+      },
+    },
+    fullDetails: {
+      type: "object",
+      properties: {
+        scan: { type: "object", additionalProperties: true },
+        tests: { type: "object", additionalProperties: true },
+      },
+    },
+    // Error fields
+    errorType: { type: "string" },
+    message: { type: "string" },
+  },
+};
+
 export const SCHEMAS = {
   analyzeGet: {
     querystring: analyzeReqQuery,
@@ -215,6 +270,16 @@ export const SCHEMAS = {
     querystring: scanQuery,
     response: {
       200: scanResponse,
+    },
+  },
+
+  scanBatchFullDetails: {
+    body: scanBatchFullDetailsBody,
+    response: {
+      200: {
+        type: "object",
+        additionalProperties: scanBatchFullDetailsItem,
+      },
     },
   },
 

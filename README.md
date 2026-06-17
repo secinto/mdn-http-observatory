@@ -107,6 +107,7 @@ The server is listening on your local interface on port `8080`. You can check th
 For containerized development and deployment, see `DOCKER.md`.
 
 That document covers:
+
 - the base Compose setup
 - the hardened overlay in `docker-compose.hardened.yml`
 - parallel validation on alternate ports before cutover
