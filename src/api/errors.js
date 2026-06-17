@@ -33,6 +33,11 @@ export class ScanFailedError extends AppError {
     this.name = "scan-failed";
     this.statusCode = STATUS_CODES.internalServerError;
     this.message = e.message;
+    // Preserve structured abort details from ScanAbortedError so callers can
+    // report *why* (and at which HTTP status) a host could not be scanned.
+    const aborted = /** @type {any} */ (e);
+    this.scanAbortReason = aborted.scanAbortReason ?? null;
+    this.siteStatusCode = aborted.siteStatusCode ?? null;
   }
 }
 export class InvalidHostNameIpError extends AppError {

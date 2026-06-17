@@ -60,7 +60,14 @@ program
       console.log(JSON.stringify(ret, null, 2));
     } catch (e) {
       if (e instanceof Error) {
-        console.log(JSON.stringify({ error: e.message }));
+        const err = /** @type {any} */ (e);
+        console.log(
+          JSON.stringify({
+            error: e.message,
+            status_code: err.siteStatusCode ?? null,
+            not_scanned_reason: err.scanAbortReason ?? null,
+          })
+        );
         process.exit(1);
       }
     }

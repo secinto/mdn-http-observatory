@@ -248,6 +248,7 @@ const scanBatchFullDetailsItem = {
     // Error fields
     errorType: { type: "string" },
     message: { type: "string" },
+    not_scanned_reason: { type: ["string", "null"] },
   },
 };
 
