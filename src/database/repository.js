@@ -3,9 +3,20 @@ import format from "pg-format";
 import { ALGORITHM_VERSION } from "../constants.js";
 import pg from "pg";
 
-// Use native bindings instead of standard bindings
-// @ts-ignore - pg.native is optional and may not be in types
-const { Pool } = pg.native || pg; // Fallback to standard pg if native not available
+// Prefer native (libpq) bindings for performance, but fall back to the
+// pure-JS client when the native addon is unavailable (e.g. libpq not built
+// in a local dev environment). Accessing pg.native *throws* rather than
+// returning undefined when pg-native is installed but its bindings are
+// missing, so the access must be guarded — a bare `pg.native || pg` would
+// crash at import time instead of falling back.
+let nativePg = null;
+try {
+  // @ts-ignore - pg.native is optional and may not be in types
+  nativePg = pg.native;
+} catch {
+  // native bindings unavailable — use the pure-JS client
+}
+const { Pool } = nativePg ?? pg;
 
 /**
  * @typedef {import("pg").Pool} Pool
@@ -25,7 +36,7 @@ export const poolOptions = {
   idleTimeoutMillis: 60000, // close idle clients after 60 seconds
   connectionTimeoutMillis: 2000, // return an error after 2 seconds if connection could not be established
   maxUses: 10000, // close (and replace) a connection after it has been used 10000 times
-  native: true,
+  native: nativePg !== null, // only request native bindings when actually available
 };
 
 /**
