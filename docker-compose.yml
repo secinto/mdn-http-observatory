@@ -68,7 +68,11 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
+    # Declared external so that `docker compose down -v` (and `make clean`)
+    # cannot destroy the scan history. `make` creates it on demand for a fresh
+    # install; use `make destroy-data` to remove it deliberately.
+    external: true
+    name: mdn-http-observatory_postgres_data
 
 networks:
   observatory-network:
