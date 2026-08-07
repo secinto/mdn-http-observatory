@@ -11,32 +11,40 @@ endif
 
 DC := $(COMPOSE) -p $(PROJECT) $(COMPOSE_FILES)
 
+# Start postgres only when it is not already running.
+ENSURE_PG = @docker ps -q --filter "name=$(PROJECT)-postgres-1" --filter "status=running" | grep -q . \
+	|| (echo "PostgreSQL not running — starting it…" && $(DC) up -d --wait postgres)
+
 .PHONY: build rebuild start stop restart up down logs status ps \
         health clean env shell db
 
 ## ── Lifecycle ───────────────────────────────────────────────
 
-build:          ## Build images
-	$(DC) build
+build:          ## Build observatory image
+	$(DC) build observatory
 
-rebuild:        ## Rebuild images from scratch (no cache)
-	$(DC) build --no-cache --pull
+rebuild:        ## Rebuild observatory image from scratch (no cache)
+	$(DC) build --no-cache --pull observatory
 
-start:          ## Start existing containers
-	$(DC) start
+start:          ## Start observatory (starts postgres if not running)
+	$(ENSURE_PG)
+	$(DC) start observatory
 
-stop:           ## Stop running containers (keep them)
-	$(DC) stop
+stop:           ## Stop observatory (keeps postgres running)
+	$(DC) stop observatory
 
-restart:        ## Restart containers (waits for healthy)
-	$(DC) stop
-	$(DC) up -d --wait
+restart:        ## Restart observatory (waits for healthy; starts postgres if needed)
+	$(DC) stop observatory
+	$(ENSURE_PG)
+	$(DC) up -d --wait observatory
 
-up: env         ## Build and start in detached mode
-	$(DC) up -d --build --wait
+up: env         ## Build and start observatory in detached mode
+	$(ENSURE_PG)
+	$(DC) up -d --build --wait observatory
 
-down:           ## Stop and remove containers & network
-	$(DC) down
+down:           ## Stop and remove observatory container
+	$(DC) stop observatory
+	$(DC) rm -f observatory
 
 ## ── Observability ───────────────────────────────────────────
 
@@ -59,7 +67,7 @@ health:         ## Quick health check against the API
 
 ## ── Cleanup ─────────────────────────────────────────────────
 
-clean:          ## Stop, remove containers, network AND volumes (fresh start)
+clean:          ## Stop, remove ALL containers, network AND volumes (fresh start)
 	$(DC) down -v
 
 ## ── Helpers ─────────────────────────────────────────────────
