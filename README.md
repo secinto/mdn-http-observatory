@@ -151,22 +151,25 @@ surfaced in the scan output (see below).
 
 ### Not-graded output
 
-When a host is not graded, the scan reports the reason instead of a grade. The
-CLI and the batch full-details API include `status_code` (the observed HTTP
-status, `null` when unreachable) and `not_scanned_reason` (one of the codes
-above):
+When a host is not graded, the scan reports the reason instead of a grade, as
+`status_code` (the observed HTTP status, `null` when unreachable) and
+`not_scanned_reason` (one of the codes above).
+
+The single-host scan APIs (`/api/v2/scan`, `/api/v2/scanFullDetails`) answer
+with `422 Unprocessable Content` and this body:
 
 ```json
 {
-  "error": "Site responded with an unresolved redirect (HTTP status code 302).",
-  "status_code": 302,
-  "not_scanned_reason": "unexpected-status-code"
+  "error": "scan-failed",
+  "message": "Site responded with an unresolved redirect (HTTP status code 302).",
+  "not_scanned_reason": "unexpected-status-code",
+  "status_code": 302
 }
 ```
 
-The single-host scan APIs report every not-graded reason above with a
-`422 Unprocessable Content` status (see [JSON API](#json-api)). The batch
-full-details API returns these fields per host, with `"success": false`.
+The CLI prints the same fields with the message in `error`. The batch
+full-details API returns them per host, with `"success": false`. Other `422`
+errors (invalid or unresolvable hostnames) have no `not_scanned_reason`.
 
 ## Docker and Hardened Deployment
 

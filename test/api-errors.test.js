@@ -8,6 +8,8 @@ import {
   SiteIsDownError,
   UnexpectedStatusCodeError,
 } from "../src/api/errors.js";
+import globalErrorHandler from "../src/api/global-error-handler.js";
+import { ScanAbortReason, ScanAbortedError } from "../src/scanner/index.js";
 
 describe("ScanFailedError", () => {
   /**
@@ -44,4 +46,61 @@ describe("ScanFailedError", () => {
       assert.equal(error.message, cause.message);
     });
   }
+});
+
+/** Minimal stand-in for a Fastify reply that records status and body. */
+class FakeReply {
+  /** @type {number | undefined} */
+  statusCode;
+  /** @type {any} */
+  body;
+
+  /** @param {number} code */
+  status(code) {
+    this.statusCode = code;
+    return this;
+  }
+
+  /** @param {any} body */
+  send(body) {
+    this.body = body;
+    return this;
+  }
+}
+
+describe("globalErrorHandler", () => {
+  it("adds the not-scanned reason and site status code to an aborted scan", async function () {
+    const reply = new FakeReply();
+    const cause = new ScanAbortedError(
+      "Site is protected by HTTP authentication and serves no content to grade.",
+      ScanAbortReason.HTTP_AUTH,
+      401
+    );
+    await globalErrorHandler(
+      /** @type {any} */ (new ScanFailedError(cause)),
+      /** @type {any} */ ({}),
+      /** @type {any} */ (reply)
+    );
+    assert.equal(reply.statusCode, 422);
+    assert.deepEqual(reply.body, {
+      error: "scan-failed",
+      message: cause.message,
+      not_scanned_reason: "http-auth",
+      status_code: 401,
+    });
+  });
+
+  it("keeps the upstream body for other application errors", async function () {
+    const reply = new FakeReply();
+    await globalErrorHandler(
+      /** @type {any} */ (new InvalidHostNameError()),
+      /** @type {any} */ ({}),
+      /** @type {any} */ (reply)
+    );
+    assert.equal(reply.statusCode, 422);
+    assert.deepEqual(reply.body, {
+      error: "invalid-hostname",
+      message: "Invalid hostname",
+    });
+  });
 });
