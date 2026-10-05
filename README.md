@@ -115,16 +115,16 @@ grading. The grade reflects the **final** response after redirects are followed
 
 ### By status code
 
-| Status                                  | Graded? | Why                                                                                   |
-| --------------------------------------- | ------- | ------------------------------------------------------------------------------------- |
-| `1xx`                                   | ❌      | Informational / non-final                                                             |
-| `2xx`                                   | ✅      | Normal success                                                                        |
-| `3xx`                                   | ❌      | Redirects are already followed (≤10 hops); a surviving `3xx` is an unresolved redirect carrying only a `Location` header |
-| `400`, `402`, `405`, `406`, `451`, …    | ✅      | Most `4xx` — security headers are analyzable on error pages too                       |
-| `401`                                   | ⚠️      | Graded **unless** it is a Basic/Digest auth challenge (see gates)                     |
-| `403`                                   | ✅      | WAF / forbidden — usually still carries representative headers                        |
-| `404`, `408`, `410`, `429`              | ❌      | Non-representative: content absent (404/410), request timeout (408), rate-limited (429) |
-| `5xx`                                   | ❌      | Server erroring; headers likely come from an error handler                            |
+| Status                               | Graded? | Why                                                                                                                      |
+| ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `1xx`                                | ❌      | Informational / non-final                                                                                                |
+| `2xx`                                | ✅      | Normal success                                                                                                           |
+| `3xx`                                | ❌      | Redirects are already followed (≤10 hops); a surviving `3xx` is an unresolved redirect carrying only a `Location` header |
+| `400`, `402`, `405`, `406`, `451`, … | ✅      | Most `4xx` — security headers are analyzable on error pages too                                                          |
+| `401`                                | ⚠️      | Graded **unless** it is a Basic/Digest auth challenge (see gates)                                                        |
+| `403`                                | ✅      | WAF / forbidden — usually still carries representative headers                                                           |
+| `404`, `408`, `410`, `429`           | ❌      | Non-representative: content absent (404/410), request timeout (408), rate-limited (429)                                  |
+| `5xx`                                | ❌      | Server erroring; headers likely come from an error handler                                                               |
 
 **In short:** graded set = `2xx` + `4xx` except `{404, 408, 410, 429}`, then
 subject to the content gates below.
@@ -163,6 +163,10 @@ above):
   "not_scanned_reason": "unexpected-status-code"
 }
 ```
+
+The single-host scan APIs report every not-graded reason above with a
+`422 Unprocessable Content` status (see [JSON API](#json-api)). The batch
+full-details API returns these fields per host, with `"success": false`.
 
 ## Docker and Hardened Deployment
 
@@ -203,15 +207,15 @@ On success, a JSON object is returned, structured like this example response:
 {
   "id": 77666718,
   "details_url": "https://developer.mozilla.org/en-US/observatory/analyze?host=mdn.dev",
-  "algorithm_version": 4,
+  "algorithm_version": 6,
   "scanned_at": "2024-08-12T08:20:18.926Z",
   "error": null,
   "grade": "A+",
   "score": 105,
   "status_code": 200,
   "tests_failed": 0,
-  "tests_passed": 10,
-  "tests_quantity": 10
+  "tests_passed": 12,
+  "tests_quantity": 12
 }
 ```
 
