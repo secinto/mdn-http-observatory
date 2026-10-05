@@ -1,8 +1,11 @@
-import { describe, it, beforeEach } from "node:test";
+import { beforeEach, describe, it } from "node:test";
+
 import { assert } from "chai";
-import { emptyRequests } from "./helpers.js";
-import { Expectation } from "../src/types.js";
+
 import { crossOriginResourcePolicyTest } from "../src/analyzer/tests/cross-origin-resource-policy.js";
+import { Expectation } from "../src/types.js";
+
+import { emptyRequests } from "./helpers.js";
 
 describe("Cross Origin Resource Policy", () => {
   /** @type {import("../src/types.js").Requests} */
@@ -72,5 +75,20 @@ describe("Cross Origin Resource Policy", () => {
       );
       assert.isTrue(result.pass);
     }
+  });
+
+  it("checks for multiple headers", function () {
+    assert.isNotNull(reqs.responses.auto);
+    reqs.responses.auto.headers["cross-origin-resource-policy"] = [
+      "same-origin",
+      "cross-origin",
+    ];
+    const result = crossOriginResourcePolicyTest(reqs);
+    assert.equal(
+      result.result,
+      Expectation.CrossOriginResourcePolicyHeaderInvalid
+    );
+    assert.equal(result.data, "same-origin, cross-origin");
+    assert.isFalse(result.pass);
   });
 });

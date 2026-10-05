@@ -1,3 +1,6 @@
+import { AppError } from "../api/errors.js";
+import { STATUS_CODES } from "../api/utils.js";
+import { ALGORITHM_VERSION, ALL_TESTS, NUM_TESTS } from "../constants.js";
 import { MINIMUM_SCORE_FOR_EXTRA_CREDIT } from "../grader/charts.js";
 import {
   getGradeForScore,
@@ -5,9 +8,6 @@ import {
   getScoreModifier,
 } from "../grader/grader.js";
 import { retrieve } from "../retriever/retriever.js";
-import { ALGORITHM_VERSION } from "../constants.js";
-import { NUM_TESTS } from "../constants.js";
-import { ALL_TESTS } from "../constants.js";
 
 /**
  * @typedef {import("../types.js").ScanResult} ScanResult
@@ -65,7 +65,7 @@ export function isContentlessAuthChallenge(headerValue) {
     ? headerValue.join(", ")
     : String(headerValue);
   return [...CONTENTLESS_AUTH_SCHEMES].some((scheme) =>
-    new RegExp(`(?:^|,)\\s*${scheme}(?:\\s|$)`, "i").test(value)
+    new RegExp(String.raw`(?:^|,)\s*${scheme}(?:\s|$)`, "i").test(value)
   );
 }
 
@@ -104,7 +104,7 @@ export function hasAnySecurityHeader(headers) {
  * machine-readable reason and, when known, the observed HTTP status code so
  * downstream consumers can explain *why* a host was not scanned.
  */
-export class ScanAbortedError extends Error {
+export class ScanAbortedError extends AppError {
   /**
    * @param {string} message
    * @param {string} reason - one of {@link ScanAbortReason}
@@ -112,7 +112,9 @@ export class ScanAbortedError extends Error {
    */
   constructor(message, reason, siteStatusCode = null) {
     super(message);
-    this.name = "ScanAbortedError";
+    // The site cannot be scanned; this is not a failure of our API.
+    this.name = reason;
+    this.statusCode = STATUS_CODES.unprocessableEntity;
     this.scanAbortReason = reason;
     this.siteStatusCode = siteStatusCode;
   }
@@ -213,14 +215,16 @@ export function analyzeScan(requests) {
   let uncurvedScore = scoreWithExtraCredit;
 
   results.forEach((result) => {
-    if (result.result) {
-      result.scoreDescription = getScoreDescription(result.result);
-      result.scoreModifier = getScoreModifier(result.result);
-      testsPassed += result.pass ? 1 : 0;
-      scoreWithExtraCredit += result.scoreModifier;
-      if (result.scoreModifier < 0) {
-        uncurvedScore += result.scoreModifier;
-      }
+    if (!result.result) {
+      return;
+    }
+
+    result.scoreDescription = getScoreDescription(result.result);
+    result.scoreModifier = getScoreModifier(result.result);
+    testsPassed += result.pass ? 1 : 0;
+    scoreWithExtraCredit += result.scoreModifier;
+    if (result.scoreModifier < 0) {
+      uncurvedScore += result.scoreModifier;
     }
   });
 

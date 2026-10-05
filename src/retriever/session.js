@@ -1,13 +1,16 @@
+import crypto from "node:crypto";
+
 import axios, { AxiosHeaders } from "axios";
-import { CONFIG } from "../config.js";
+
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { CookieJar } from "tough-cookie";
-import crypto from "crypto";
+
+import { CONFIG } from "../config.js";
 
 const ABORT_TIMEOUT = CONFIG.retriever.abortTimeout;
 const CLIENT_TIMEOUT = CONFIG.retriever.clientTimeout;
 
-const CERT_ERROR_CODES = [
+const CERT_ERROR_CODES = new Set([
   "UNABLE_TO_GET_ISSUER_CERT",
   "UNABLE_TO_GET_CRL",
   "UNABLE_TO_DECRYPT_CERT_SIGNATURE",
@@ -37,9 +40,9 @@ const CERT_ERROR_CODES = [
   "CERT_REJECTED",
   "HOSTNAME_MISMATCH",
   "ERR_TLS_CERT_ALTNAME_INVALID",
-];
+]);
 
-const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308];
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
 const MAX_REDIRECTS = 10;
 
@@ -76,7 +79,7 @@ export class Session {
   /**
    *
    * @param {URL} url
-   * @param {{ headers?: string[]; cookies?: string[]; }} [options = {}]
+   * @param {{ headers?: string[]; cookies?: string[]; }} [options]
    */
   constructor(url, { headers: headerParams, cookies: _cookies } = {}) {
     this.redirectHistory = [];
@@ -134,10 +137,9 @@ export class Session {
         if (
           that.redirectCount < MAX_REDIRECTS &&
           response.status &&
-          REDIRECT_STATUS_CODES.includes(response.status)
+          REDIRECT_STATUS_CODES.has(response.status)
         ) {
-          const url =
-            that.redirectHistory[that.redirectHistory.length - 1]?.url;
+          const url = that.redirectHistory.at(-1)?.url;
           const redirectUrl = response.headers.location;
           const newUrl = new URL(redirectUrl, url);
           that.redirectCount++;
@@ -174,18 +176,18 @@ export class Session {
           this.clientInstanceRecordingRedirects.defaults.httpsAgent.options
             .rejectUnauthorized,
       };
-    } catch (e) {
+    } catch (error) {
       // Check for a cert error and replace the httpsAgent with
       // a non-verifying one
       let code;
-      if (e && typeof e === "object" && "code" in e) {
-        code = String(e.code);
+      if (error && typeof error === "object" && "code" in error) {
+        code = String(error.code);
       } else {
         code = null;
       }
       if (
         code &&
-        CERT_ERROR_CODES.indexOf(code) !== -1 &&
+        CERT_ERROR_CODES.has(code) &&
         this.clientInstanceRecordingRedirects.defaults.httpsAgent.options
           .rejectUnauthorized
       ) {
@@ -210,7 +212,7 @@ export class Session {
           ic.error
         );
         if (!this.clientInstance) {
-          throw new Error("clientInstance is null");
+          throw new Error("clientInstance is null", { cause: error });
         }
         this.clientInstance = axios.create({
           ...this.clientInstance.defaults,
@@ -230,10 +232,10 @@ export class Session {
       if (
         code === "EPROTO" &&
         !this.legacyTlsRetried &&
-        e &&
-        typeof e === "object" &&
-        "message" in e &&
-        String(e.message).includes("legacy renegotiation")
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        String(error.message).includes("legacy renegotiation")
       ) {
         this.legacyTlsRetried = true;
         this.connectionInfo.legacyTlsRenegotiation = true;
@@ -256,7 +258,7 @@ export class Session {
           ic.error
         );
         if (!this.clientInstance) {
-          throw new Error("clientInstance is null");
+          throw new Error("clientInstance is null", { cause: error });
         }
         this.clientInstance = axios.create({
           ...this.clientInstance.defaults,
@@ -269,7 +271,7 @@ export class Session {
         return this;
       }
       // Store error information for better debugging
-      this.error = e;
+      this.error = error;
       this.errorCode = code;
       this.clientInstance = null;
       this.clientInstanceRecordingRedirects = null;
@@ -281,7 +283,7 @@ export class Session {
   /**
    *
    * @param {URL} url
-   * @param {{ headers?: string[]; cookies?: string[]; }} [options = {}]
+   * @param {{ headers?: string[]; cookies?: string[]; }} [options]
    * @returns Session
    */
   static async fromUrl(url, { headers: headerParams, cookies } = {}) {
@@ -328,7 +330,7 @@ export class Session {
         timeout: CLIENT_TIMEOUT,
       });
       return res;
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -349,7 +351,7 @@ export class Session {
         timeout: CLIENT_TIMEOUT,
       });
       return res;
-    } catch (e) {
+    } catch {
       return null;
     }
   }

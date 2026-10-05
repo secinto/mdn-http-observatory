@@ -1,9 +1,11 @@
-import { BaseOutput, HTML_TYPES, Requests } from "../../types.js";
-import { Expectation } from "../../types.js";
-import { collectElements, getAttribute } from "../../utils/html-parser.js";
 import { parse } from "tldts";
-import { getFirstHttpHeader, onlyIfWorse } from "../utils.js";
+
 import { CONTENT_TYPE } from "../../headers.js";
+import { BaseOutput, Expectation, HTML_TYPES } from "../../types.js";
+import { collectElements, getAttribute } from "../../utils/html-parser.js";
+import { getFirstHttpHeader, onlyIfWorse } from "../utils.js";
+
+/** @import { Requests } from "../../types.js" */
 
 export class SubresourceIntegrityOutput extends BaseOutput {
   /** @type {import("../../types.js").ScriptMap} */
@@ -58,7 +60,7 @@ export function subresourceIntegrityTest(
     return output;
   }
 
-  const mime = (getFirstHttpHeader(resp, CONTENT_TYPE) ?? "").split(";")[0];
+  const mime = (getFirstHttpHeader(resp, CONTENT_TYPE) ?? "").split(";", 1)[0];
   if (mime && !HTML_TYPES.has(mime)) {
     // If the content isn't HTML, there's no scripts to load; this is okay
     output.result = Expectation.SriNotImplementedResponseNotHtml;
@@ -67,7 +69,7 @@ export function subresourceIntegrityTest(
     let scripts;
     try {
       scripts = collectElements(requests.resources.path || "", "script");
-    } catch (e) {
+    } catch {
       // severe parser error
       output.result = Expectation.HtmlNotParseable;
       return output;
@@ -76,89 +78,90 @@ export function subresourceIntegrityTest(
     let scriptsOnForeignOrigin = false;
     for (const script of scripts) {
       const scriptSrc = getAttribute(script, "src");
-      if (scriptSrc) {
-        const src = parse(scriptSrc);
-        const integrity = getAttribute(script, "integrity") || null;
-        const crossorigin = getAttribute(script, "crossorigin") || null;
+      if (!scriptSrc) {
+        continue;
+      }
 
-        let relativeOrigin = false;
-        let relativeProtocol = false;
-        let sameSecondLevelDomain = false;
+      const src = parse(scriptSrc);
+      const integrity = getAttribute(script, "integrity") || null;
+      const crossorigin = getAttribute(script, "crossorigin") || null;
 
-        const relativeProtocolRegex = /^(\/\/)[^\/]/;
-        const fullUrlRegex = /^https?:\/\//;
+      let relativeOrigin = false;
+      let relativeProtocol = false;
+      let sameSecondLevelDomain;
 
-        if (relativeProtocolRegex.test(scriptSrc)) {
-          // relative protocol(src="//example.com/script.js")
-          relativeProtocol = true;
-          sameSecondLevelDomain = true;
-        } else if (fullUrlRegex.test(scriptSrc)) {
-          // full URL (src="https://example.com/script.js")
-          sameSecondLevelDomain =
-            src.domain === parse(requests.site.hostname).domain;
-        } else {
-          // relative URL (src="/path" etc.)
-          relativeOrigin = true;
-          sameSecondLevelDomain = true;
+      const relativeProtocolRegex = /^(\/\/)[^/]/;
+      const fullUrlRegex = /^https?:\/\//;
+
+      if (relativeProtocolRegex.test(scriptSrc)) {
+        // relative protocol(src="//example.com/script.js")
+        relativeProtocol = true;
+        sameSecondLevelDomain = true;
+      } else if (fullUrlRegex.test(scriptSrc)) {
+        // full URL (src="https://example.com/script.js")
+        sameSecondLevelDomain =
+          src.domain === parse(requests.site.hostname).domain;
+      } else {
+        // relative URL (src="/path" etc.)
+        relativeOrigin = true;
+        sameSecondLevelDomain = true;
+      }
+
+      // Check to see if it is the same origin or second level domain
+      let secureOrigin;
+      if (relativeOrigin || (sameSecondLevelDomain && !relativeProtocol)) {
+        secureOrigin = true;
+      } else {
+        secureOrigin = false;
+        scriptsOnForeignOrigin = true;
+      }
+
+      // Check if it is a secure scheme
+      let scheme = null;
+      if (!relativeProtocol && !relativeOrigin) {
+        scheme = new URL(scriptSrc).protocol;
+      }
+      let secureScheme = false;
+      if (
+        scheme === "https:" ||
+        (relativeOrigin && requests.session?.url.protocol === "https:")
+      ) {
+        secureScheme = true;
+      }
+
+      // Add it to the scripts data result, if it's not a relative URI
+      if (!secureOrigin) {
+        output.data[scriptSrc] = { crossorigin, integrity };
+
+        if (integrity && !secureScheme) {
+          output.result = onlyIfWorse(
+            Expectation.SriImplementedButExternalScriptsNotLoadedSecurely,
+            output.result,
+            goodness
+          );
+        } else if (!integrity && secureScheme) {
+          output.result = onlyIfWorse(
+            Expectation.SriNotImplementedButExternalScriptsLoadedSecurely,
+            output.result,
+            goodness
+          );
+        } else if (!integrity && !secureScheme && sameSecondLevelDomain) {
+          output.result = onlyIfWorse(
+            Expectation.SriNotImplementedAndExternalScriptsNotLoadedSecurely,
+            output.result,
+            goodness
+          );
+        } else if (!integrity && !secureScheme) {
+          output.result = onlyIfWorse(
+            Expectation.SriNotImplementedAndExternalScriptsNotLoadedSecurely,
+            output.result,
+            goodness
+          );
         }
-
-        // Check to see if it is the same origin or second level domain
-        let secureOrigin = false;
-        if (relativeOrigin || (sameSecondLevelDomain && !relativeProtocol)) {
-          secureOrigin = true;
-        } else {
-          secureOrigin = false;
-          scriptsOnForeignOrigin = true;
-        }
-
-        // Check if it is a secure scheme
-        let scheme = null;
-        if (!relativeProtocol && !relativeOrigin) {
-          scheme = new URL(scriptSrc).protocol;
-        }
-        let secureScheme = false;
-        if (
-          scheme === "https:" ||
-          (relativeOrigin && requests.session?.url.protocol === "https:")
-        ) {
-          secureScheme = true;
-        }
-
-        // Add it to the scripts data result, if it's not a relative URI
-        if (!secureOrigin) {
-          output.data[scriptSrc] = { crossorigin, integrity };
-
-          if (integrity && !secureScheme) {
-            output.result = onlyIfWorse(
-              Expectation.SriImplementedButExternalScriptsNotLoadedSecurely,
-              output.result,
-              goodness
-            );
-          } else if (!integrity && secureScheme) {
-            output.result = onlyIfWorse(
-              Expectation.SriNotImplementedButExternalScriptsLoadedSecurely,
-              output.result,
-              goodness
-            );
-          } else if (!integrity && !secureScheme && sameSecondLevelDomain) {
-            output.result = onlyIfWorse(
-              Expectation.SriNotImplementedAndExternalScriptsNotLoadedSecurely,
-              output.result,
-              goodness
-            );
-          } else if (!integrity && !secureScheme) {
-            output.result = onlyIfWorse(
-              Expectation.SriNotImplementedAndExternalScriptsNotLoadedSecurely,
-              output.result,
-              goodness
-            );
-          }
-        } else {
-          // Grant bonus even if they use SRI on the same origin
-          if (integrity && secureScheme && !output.result) {
-            output.result =
-              Expectation.SriImplementedAndAllScriptsLoadedSecurely;
-          }
+      } else {
+        // Grant bonus even if they use SRI on the same origin
+        if (integrity && secureScheme && !output.result) {
+          output.result = Expectation.SriImplementedAndAllScriptsLoadedSecurely;
         }
       }
     }
@@ -179,7 +182,7 @@ export function subresourceIntegrityTest(
   }
 
   // Code defensively on the size of the data
-  output.data = JSON.stringify(output.data).length < 32768 ? output.data : {};
+  output.data = JSON.stringify(output.data).length < 32_768 ? output.data : {};
   // Check to see if the test passed or failed
   if (
     [

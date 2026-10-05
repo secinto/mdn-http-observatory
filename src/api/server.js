@@ -1,36 +1,37 @@
-import Fastify from "fastify";
-import simpleFormPlugin from "fastify-simple-form";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import pool from "@fastify/postgres";
 import * as Sentry from "@sentry/node";
+import Fastify from "fastify";
+import simpleFormPlugin from "fastify-simple-form";
 
 // import analyzeApiV1 from "./v1/analyze/index.js";
-import analyzeApiV2 from "./v2/analyze/index.js";
-import scanApiV2 from "./v2/scan/index.js";
-import scanFullDetailsApiV2 from "./v2/scan/full-details.js";
-import scanBatchFullDetailsApiV2 from "./v2/scan/batch-full-details.js";
-import statsApiV2 from "./v2/stats/index.js";
-import recommendationMatrixApiV2 from "./v2/recommendations/index.js";
-import version from "./version/index.js";
+import { CONFIG } from "../config.js";
+import { poolOptions } from "../database/repository.js";
+
 import globalErrorHandler from "./global-error-handler.js";
 import healthApiV2 from "./health/index.js";
-import pool from "@fastify/postgres";
-import { poolOptions } from "../database/repository.js";
-import { CONFIG } from "../config.js";
+import analyzeApiV2 from "./v2/analyze/index.js";
+import recommendationMatrixApiV2 from "./v2/recommendations/index.js";
+import scanBatchFullDetailsApiV2 from "./v2/scan/batch-full-details.js";
+import scanFullDetailsApiV2 from "./v2/scan/full-details.js";
+import scanApiV2 from "./v2/scan/index.js";
+import statsApiV2 from "./v2/stats/index.js";
+import version from "./version/index.js";
 
-const FILTERED_ERROR_TYPES = [
+const FILTERED_ERROR_TYPES = new Set([
   "invalid-hostname",
   "invalid-hostname-lookup",
   "invalid-hostname-ip",
   "scan-failed",
   "site-down",
-];
-const FILTERED_ERROR_CODES = [
+]);
+const FILTERED_ERROR_CODES = new Set([
   "FST_ERR_VALIDATION",
   "FST_ERR_CTP_INVALID_MEDIA_TYPE",
   "FST_ERR_CTP_EMPTY_JSON_BODY",
-];
-const FILTERED_STATUS_CODES = [422];
+]);
+const FILTERED_STATUS_CODES = new Set([422]);
 
 if (CONFIG.sentry.dsn) {
   Sentry.init({
@@ -47,30 +48,24 @@ if (CONFIG.sentry.dsn) {
       const originalError = hint.originalException;
       if (
         // @ts-expect-error
-        FILTERED_STATUS_CODES.includes(originalError?.statusCode) ||
+        FILTERED_STATUS_CODES.has(originalError?.statusCode) ||
         // @ts-expect-error
-        FILTERED_STATUS_CODES.includes(originalError?.originalError?.status)
-      ) {
-        return null;
-      }
-      // Also check event tags for HTTP status
-      if (
-        FILTERED_STATUS_CODES.includes(
-          Number(event.tags?.["http.status_code"] || 0)
-        )
+        FILTERED_STATUS_CODES.has(originalError?.originalError?.status) ||
+        // Also check event tags for HTTP status
+        FILTERED_STATUS_CODES.has(Number(event.tags?.["http.status_code"] || 0))
       ) {
         return null;
       }
       // Filter out common user errors
       // @ts-expect-error
       const errorType = originalError?.name || "";
-      if (FILTERED_ERROR_TYPES.includes(errorType)) {
+      if (FILTERED_ERROR_TYPES.has(errorType)) {
         return null;
       }
       // Filter out errors from query schema validation
-      // @ts-ignore
+      // @ts-expect-error
       const errorMessage = originalError?.code || "";
-      if (FILTERED_ERROR_CODES.includes(errorMessage)) {
+      if (FILTERED_ERROR_CODES.has(errorMessage)) {
         return null;
       }
       return event;
@@ -92,12 +87,12 @@ export async function createServer() {
     Sentry.setupFastifyErrorHandler(server);
   }
 
-  // @ts-ignore
+  // @ts-expect-error
   server.register(simpleFormPlugin);
   await server.register(cors, {
     origin: "*",
     methods: ["GET", "OPTIONS", "HEAD", "POST"],
-    maxAge: 86400,
+    maxAge: 86_400,
   });
   await server.register(helmet, {
     contentSecurityPolicy: {
@@ -111,7 +106,7 @@ export async function createServer() {
     },
 
     hsts: {
-      maxAge: 63072000,
+      maxAge: 63_072_000,
       includeSubDomains: false,
     },
     frameguard: {
@@ -141,11 +136,12 @@ export async function createServer() {
     server.register(healthApiV2, { prefix: "/api/v2" }),
   ]);
 
+  const shutdown = async () => {
+    await server.close();
+    process.exit(0);
+  };
   ["SIGINT", "SIGTERM"].forEach((signal) => {
-    process.on(signal, async () => {
-      await server.close();
-      process.exit(0);
-    });
+    process.on(signal, () => void shutdown());
   });
 
   return server;

@@ -1,8 +1,9 @@
-import { describe, it } from "node:test";
-import { assert } from "chai";
 import fs from "node:fs";
 import path from "node:path";
+import { describe, it } from "node:test";
+
 import Ajv from "ajv";
+import { assert } from "chai";
 
 import { SCHEMAS } from "../src/api/v2/schemas.js";
 
@@ -71,7 +72,7 @@ describe("scripts/examples scan output files", () => {
             validateItem(example),
             `item schema errors: ${JSON.stringify(validateItem.errors)}`
           );
-          const host = path.basename(file).split("_")[0] ?? "host";
+          const host = path.basename(file).split("_", 1)[0] ?? "host";
           assert.isTrue(
             validateMap({ [host]: example }),
             `map schema errors: ${JSON.stringify(validateMap.errors)}`

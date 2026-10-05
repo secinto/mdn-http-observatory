@@ -1,9 +1,9 @@
-#!/usr/bin/env node
+import { pathToFileURL } from "node:url";
 
 import { Command } from "commander";
+
 import { scan } from "./scanner/index.js";
 import { Site } from "./site.js";
-import { pathToFileURL } from "node:url";
 
 /**
  * @param {string} json
@@ -38,18 +38,17 @@ program
   .action(async (siteString, options) => {
     try {
       /** @type {import("./types.js").ScanOptions} */
-      const scanOptions = {};
-      if (options.headers) {
-        scanOptions.customHeaders = parseHeadersOption(options.headers);
-      }
-      if (options.sendHeadersOverHttp) {
-        scanOptions.sendHeadersOverHttp = true;
-      }
+      const scanOptions = {
+        ...(options.headers && {
+          customHeaders: parseHeadersOption(options.headers),
+        }),
+        ...(options.sendHeadersOverHttp && { sendHeadersOverHttp: true }),
+      };
       const site = Site.fromSiteString(siteString);
       const result = await scan(site, scanOptions);
       const tests = Object.fromEntries(
         Object.entries(result.tests).map(([key, test]) => {
-          const { scoreDescription, ...rest } = test;
+          const { scoreDescription: _scoreDescription, ...rest } = test;
           return [key, rest];
         })
       );
@@ -58,12 +57,12 @@ program
         tests: tests,
       };
       console.log(JSON.stringify(ret, null, 2));
-    } catch (e) {
-      if (e instanceof Error) {
-        const err = /** @type {any} */ (e);
+    } catch (error) {
+      if (error instanceof Error) {
+        const err = /** @type {any} */ (error);
         console.log(
           JSON.stringify({
-            error: e.message,
+            error: error.message,
             status_code: err.siteStatusCode ?? null,
             not_scanned_reason: err.scanAbortReason ?? null,
           })

@@ -1,4 +1,4 @@
-const compareString = Intl.Collator("en").compare;
+const compareString = new Intl.Collator("en").compare;
 
 const SHORTEST_DIRECTIVE = "img-src";
 const SHORTEST_DIRECTIVE_LENGTH = SHORTEST_DIRECTIVE.length - 1; // the shortest policy accepted by the CSP test
@@ -83,7 +83,7 @@ export function parseCsp(cspList) {
 
       const values = [];
       const keep = policyIndex === 0;
-      if (valueEntries.length) {
+      if (valueEntries.length > 0) {
         values.push(
           ...valueEntries.map((rawSource) => {
             const source = rawSource.trim().toLocaleLowerCase();
@@ -157,14 +157,16 @@ export function parseCsp(cspList) {
   // now we need to flatten out all the CSP directives (e.g. (source, index, False) back into actual values
   // if they had defined a directive and didn't have a value remaining, then force it to none
   const finalCsp = new Map(
-    [...csp.entries()].map(([directive, sources]) => [
+    [...csp].map(([directive, sources]) => [
       directive,
-      sources.length
-        ? new Set([...sources.values()].map((source) => source.source))
-        : new Set(["'none'"]),
+      new Set(
+        sources.length > 0
+          ? [...sources].map((source) => source.source)
+          : ["'none'"]
+      ),
     ])
   );
-  if (duplicate_warnings.size) {
+  if (duplicate_warnings.size > 0) {
     finalCsp.set(DUPLICATE_WARNINGS_KEY, duplicate_warnings);
   }
   return finalCsp;
@@ -177,26 +179,22 @@ export function parseCsp(cspList) {
  * @returns
  */
 function pathPartMatch(pathA, pathB) {
-  if (pathA.length === 0) {
-    return true;
-  }
-  if (pathA === "/" && pathB.length === 0) {
+  if (pathA.length === 0 || (pathA === "/" && pathB.length === 0)) {
     return true;
   }
   const exactMatch = !pathA.endsWith("/");
   const pathListA = pathA.split("/");
   const pathListB = pathB.split("/");
-  if (pathListA.length > pathListB.length) {
-    return false;
-  }
-  if (exactMatch && pathListA.length !== pathListB.length) {
+  if (
+    pathListA.length > pathListB.length ||
+    (exactMatch && pathListA.length !== pathListB.length)
+  ) {
     return false;
   }
   if (!exactMatch) {
     pathListA.pop();
   }
-  for (let i = 0; i < pathListA.length; i++) {
-    const pathAElement = pathListA[i];
+  for (const [i, pathAElement] of pathListA.entries()) {
     const pathBElement = pathListB[i];
     if (pathAElement === undefined || pathBElement === undefined) {
       return false;

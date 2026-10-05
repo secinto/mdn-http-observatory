@@ -114,7 +114,7 @@ async function scanOrReturnRecentWithFullDetails(pool, site, age) {
   // Remove scoreDescription from tests as done in scan.js
   const tests = Object.fromEntries(
     Object.entries(fullScanResult.tests).map(([key, test]) => {
-      const { scoreDescription, ...rest } = test;
+      const { scoreDescription: _scoreDescription, ...rest } = test;
       return [key, rest];
     })
   );

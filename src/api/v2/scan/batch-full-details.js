@@ -2,8 +2,8 @@ import { CONFIG } from "../../../config.js";
 import { selectScanLatestScanByHost as selectScanLatestScanBySite } from "../../../database/repository.js";
 import { scan } from "../../../scanner/index.js";
 import { Site } from "../../../site.js";
-import { checkSitename, executeScan } from "../utils.js";
 import { SCHEMAS } from "../schemas.js";
+import { checkSitename, executeScan } from "../utils.js";
 
 /**
  * @typedef {import("pg").Pool} Pool
@@ -54,8 +54,8 @@ async function scanSingleUrl(pool, url) {
     site = await checkSitename(site);
 
     return await scanWithFullDetails(pool, site, CONFIG.api.cooldown);
-  } catch (err) {
-    const error = /** @type {any} */ (err);
+  } catch (error_) {
+    const error = /** @type {any} */ (error_);
     return {
       success: false,
       error: error.name || "error-unknown",
@@ -101,7 +101,7 @@ async function scanWithFullDetails(pool, site, age) {
   // Remove scoreDescription from tests as done in scan.js
   const tests = Object.fromEntries(
     Object.entries(fullScanResult.tests).map(([key, test]) => {
-      const { scoreDescription, ...rest } = test;
+      const { scoreDescription: _scoreDescription, ...rest } = test;
       return [key, rest];
     })
   );

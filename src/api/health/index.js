@@ -23,21 +23,20 @@ export default async function (fastify) {
     try {
       await pool.query("SELECT 1");
       result.db = true;
-    } catch (err) {
-      errors.push(`db: ${err instanceof Error ? err.message : String(err)}`);
+    } catch (error) {
+      errors.push(
+        `db: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     // 2. DNS resolution check — resolve a well-known external hostname
     try {
-      await new Promise((resolve, reject) => {
-        dns.lookup("mozilla.org", (err) => {
-          if (err) reject(err);
-          else resolve(undefined);
-        });
-      });
+      await dns.promises.lookup("mozilla.org");
       result.dns = true;
-    } catch (err) {
-      errors.push(`dns: ${err instanceof Error ? err.message : String(err)}`);
+    } catch (error) {
+      errors.push(
+        `dns: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     if (errors.length > 0) {

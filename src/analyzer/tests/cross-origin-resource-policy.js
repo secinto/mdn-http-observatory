@@ -1,7 +1,8 @@
 import { CROSS_ORIGIN_RESOURCE_POLICY } from "../../headers.js";
-import { BaseOutput, Requests } from "../../types.js";
-import { Expectation } from "../../types.js";
-import { getFirstHttpHeader } from "../utils.js";
+import { BaseOutput, Expectation } from "../../types.js";
+import { getHttpHeaders } from "../utils.js";
+
+/** @import { Requests } from "../../types.js" */
 
 export class CrossOriginResourcePolicyOutput extends BaseOutput {
   /** @type {string | null} */
@@ -17,14 +18,6 @@ export class CrossOriginResourcePolicyOutput extends BaseOutput {
     Expectation.CrossOriginResourcePolicyImplementedWithCrossOrigin,
     Expectation.CrossOriginResourcePolicyHeaderInvalid,
   ];
-
-  /**
-   *
-   * @param {Expectation} expectation
-   */
-  constructor(expectation) {
-    super(expectation);
-  }
 }
 
 /**
@@ -45,7 +38,8 @@ export function crossOriginResourcePolicyTest(
     return output;
   }
 
-  const httpHeader = getFirstHttpHeader(resp, CROSS_ORIGIN_RESOURCE_POLICY);
+  const httpHeaders = getHttpHeaders(resp, CROSS_ORIGIN_RESOURCE_POLICY);
+  const httpHeader = httpHeaders.join(", ");
   const equivHeaders =
     resp.httpEquiv?.get(CROSS_ORIGIN_RESOURCE_POLICY) ?? null;
 
@@ -53,37 +47,47 @@ export function crossOriginResourcePolicyTest(
   output.http = !!httpHeader;
   output.meta = equivHeaders ? equivHeaders.length > 0 : false;
 
-  // If it is both a header and a http-equiv, http-equiv has precedence (last value)
+  // If it is both a header and a http-equiv, the header has precedence.
   /** @type {string | undefined}  */
   let corpHeader;
   if (output.http && httpHeader) {
     corpHeader = httpHeader.slice(0, 256).trim().toLowerCase();
-  } else if (output.meta) {
-    if (
-      equivHeaders &&
-      Array.isArray(equivHeaders) &&
-      equivHeaders.length > 0
-    ) {
-      const h = equivHeaders[equivHeaders.length - 1];
-      if (h) {
-        corpHeader = h.slice(0, 256).trim().toLowerCase();
-      }
+  } else if (
+    output.meta &&
+    equivHeaders &&
+    Array.isArray(equivHeaders) &&
+    equivHeaders.length > 0
+  ) {
+    const h = equivHeaders.at(-1);
+    if (h) {
+      corpHeader = h.slice(0, 256).trim().toLowerCase();
     }
   }
 
   if (corpHeader) {
     output.data = corpHeader;
-    if (corpHeader === "same-site") {
-      output.result =
-        Expectation.CrossOriginResourcePolicyImplementedWithSameSite;
-    } else if (corpHeader === "same-origin") {
-      output.result =
-        Expectation.CrossOriginResourcePolicyImplementedWithSameOrigin;
-    } else if (corpHeader === "cross-origin") {
-      output.result =
-        Expectation.CrossOriginResourcePolicyImplementedWithCrossOrigin;
-    } else {
-      output.result = Expectation.CrossOriginResourcePolicyHeaderInvalid;
+    switch (corpHeader) {
+      case "same-site": {
+        output.result =
+          Expectation.CrossOriginResourcePolicyImplementedWithSameSite;
+
+        break;
+      }
+      case "same-origin": {
+        output.result =
+          Expectation.CrossOriginResourcePolicyImplementedWithSameOrigin;
+
+        break;
+      }
+      case "cross-origin": {
+        output.result =
+          Expectation.CrossOriginResourcePolicyImplementedWithCrossOrigin;
+
+        break;
+      }
+      default: {
+        output.result = Expectation.CrossOriginResourcePolicyHeaderInvalid;
+      }
     }
   }
 

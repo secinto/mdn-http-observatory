@@ -1,4 +1,6 @@
-import { Expectation } from "../types.js";
+import { Token, parseItem } from "structured-headers";
+
+/** @import { Expectation } from "../types.js" */
 
 /**
  * Return the new result if it's worse than the existing result, otherwise just the current result.
@@ -35,9 +37,31 @@ export function getHttpHeaders(response, name) {
     .filter(([headerName, _value]) => {
       return headerName.toLowerCase() === lcName;
     })
-    .map(([_headerName, value]) => value)
-    .flat();
+    .flatMap(([_headerName, value]) => value);
   return headers;
+}
+
+/**
+ * Parse a header value as an RFC 8941 structured field "item" and return its
+ * bare item if it is a token, or null otherwise (the value is not a valid
+ * structured field, or its bare item is not a token).
+ *
+ * This mirrors how the HTML standard parses the `Cross-Origin-Embedder-Policy`
+ * and `Cross-Origin-Opener-Policy` headers: a value that cannot be parsed as a
+ * structured field is ignored rather than partially honored, and only a token
+ * (not a quoted string) is a valid policy value. Any parameters (e.g.
+ * `report-to`) are left for the caller to inspect or ignore.
+ *
+ * @param {string} value
+ * @returns {string | null}
+ */
+export function parseStructuredFieldToken(value) {
+  try {
+    const [bareItem] = parseItem(value);
+    return bareItem instanceof Token ? bareItem.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

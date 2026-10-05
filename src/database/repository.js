@@ -1,7 +1,8 @@
-import { CONFIG } from "../config.js";
-import format from "pg-format";
-import { ALGORITHM_VERSION } from "../constants.js";
 import pg from "pg";
+import format from "pg-format";
+
+import { CONFIG } from "../config.js";
+import { ALGORITHM_VERSION } from "../constants.js";
 
 // Prefer native (libpq) bindings for performance, but fall back to the
 // pure-JS client when the native addon is unavailable (e.g. libpq not built
@@ -11,7 +12,6 @@ import pg from "pg";
 // crash at import time instead of falling back.
 let nativePg = null;
 try {
-  // @ts-ignore - pg.native is optional and may not be in types
   nativePg = pg.native;
 } catch {
   // native bindings unavailable — use the pure-JS client
@@ -33,9 +33,9 @@ export const poolOptions = {
   port: CONFIG.database.port,
   ssl: CONFIG.database.sslmode,
   max: 20, // pg max_connections (100) / k8s maxReplicas (5) = 20
-  idleTimeoutMillis: 60000, // close idle clients after 60 seconds
+  idleTimeoutMillis: 60_000, // close idle clients after 60 seconds
   connectionTimeoutMillis: 2000, // return an error after 2 seconds if connection could not be established
-  maxUses: 10000, // close (and replace) a connection after it has been used 10000 times
+  maxUses: 10_000, // close (and replace) a connection after it has been used 10000 times
   native: nativePg !== null, // only request native bindings when actually available
 };
 
@@ -77,9 +77,9 @@ export const ScanState = {
  * @property {number | null} grade
  * @property {number | null} score
  * @property {string | null} error
- * @property {Object | null} response_headers
+ * @property {object | null} response_headers
  * @property {number | null} status_code
- * @property {Object | null} connection_info
+ * @property {object | null} connection_info
  */
 
 /**
@@ -203,9 +203,9 @@ export async function ensureSite(pool, siteKey) {
 }
 
 /**
- * @typedef {Object} HeadersCookiesResult
- * @prop {import("../types.js").StringMap} [cookies]
- * @prop {import("../types.js").StringMap} [headers]
+ * @typedef {object} HeadersCookiesResult
+ * @property {import("../types.js").StringMap} [cookies]
+ * @property {import("../types.js").StringMap} [headers]
  */
 
 /**
@@ -292,6 +292,7 @@ export async function selectScanRecentScan(
  * Returns the most recent scan for a host
  * @param {Pool} pool
  * @param {string} host
+ * @param {number} [maxAge]
  * @returns {Promise<ScanRow | undefined>}
  */
 export async function selectScanLatestScanByHost(
