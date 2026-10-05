@@ -190,75 +190,40 @@ parse_url() {
     echo "${hostname}:${port}"
 }
 
-# Perform a single scan with retries
-# Arguments: hostname port
-scan_url() {
-    local hostname="$1"
-    local port="$2"
-    local host_param="${hostname}:${port}"
-    local timestamp
-    local output_file
-    local response
-    local http_code
-    local attempt
-
-    timestamp="$(date +%Y%m%d_%H%M%S)"
-    output_file="${OUTPUT_DIR}/${hostname}_${timestamp}_${port}.json"
-
-    log_verbose "Scanning ${host_param}..."
-
-    for ((attempt=1; attempt<=RETRIES; attempt++)); do
-        # Create temp file for response
-        local temp_response
-        temp_response="$(mktemp)"
-
-        # Make API request
-        http_code=$(curl -s -w "%{http_code}" \
-            --max-time "$TIMEOUT" \
-            -X POST \
-            -o "$temp_response" \
-            "${SCAN_API_URL}/api/v2/scanFullDetails?host=${host_param}" 2>/dev/null) || http_code="000"
-
-        if [[ "$http_code" == "200" ]]; then
-            # Success - save result
-            mv "$temp_response" "$output_file"
-            log_success "${hostname}:${port} -> $(basename "$output_file")"
-
-            # Increment success counter
-            echo "1" >> "${TEMP_DIR}/success.count"
-            return 0
-        elif [[ "$http_code" == "422" ]]; then
-            # Client error (invalid hostname, etc.) - don't retry
-            local error_msg
-            error_msg=$(cat "$temp_response" 2>/dev/null | grep -o '"message":"[^"]*"' | cut -d'"' -f4 || echo "Validation error")
-            rm -f "$temp_response"
-            log_error "${hostname}:${port} - ${error_msg} (HTTP ${http_code})"
-
-            # Save error response
-            echo "{\"error\": \"validation_error\", \"message\": \"${error_msg}\", \"http_code\": ${http_code}, \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
-
-            # Increment failure counter
-            echo "1" >> "${TEMP_DIR}/failed.count"
-            return 1
-        else
-            # Server error or network issue - retry
-            rm -f "$temp_response"
-            if [[ $attempt -lt $RETRIES ]]; then
-                log_verbose "Attempt $attempt failed for ${host_param} (HTTP ${http_code}), retrying..."
-                sleep $((attempt * 2))  # Exponential backoff
-            fi
-        fi
-    done
-
-    # All retries exhausted
-    log_error "${hostname}:${port} - Failed after ${RETRIES} attempts"
-
-    # Save error info
-    echo "{\"error\": \"scan_failed\", \"message\": \"Failed after ${RETRIES} attempts\", \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
-
-    # Increment failure counter
-    echo "1" >> "${TEMP_DIR}/failed.count"
-    return 1
+# Write the per-host record for an HTTP 422 response and print the counter to
+# bump. The Observatory answers 422 both for invalid hostnames and for targets
+# it refuses to grade; the latter carry "error": "scan-failed" plus a
+# not_scanned_reason, and are skipped (not failed) because a retry cannot help.
+# Usage: write_unprocessable_record <response_file> <output_file> <host> <timestamp>
+write_unprocessable_record() {
+    python3 - "$@" <<'PY'
+import json, sys
+response_file, output_file, host, timestamp = sys.argv[1:5]
+try:
+    with open(response_file) as f:
+        body = json.load(f)
+except (OSError, ValueError):
+    body = {}
+if not isinstance(body, dict):
+    body = {}
+message = body.get("message") or "Unprocessable target"
+if body.get("error") == "scan-failed" and body.get("not_scanned_reason"):
+    record = {
+        "error": "target_not_scannable",
+        "message": message,
+        "not_scanned_reason": body["not_scanned_reason"],
+        "status_code": body.get("status_code"),
+        "http_code": 422,
+    }
+    counter = "skipped"
+else:
+    record = {"error": "validation_error", "message": message, "http_code": 422}
+    counter = "failed"
+record.update({"host": host, "timestamp": timestamp})
+with open(output_file, "w") as f:
+    json.dump(record, f)
+print(counter, message, sep="\t")
+PY
 }
 
 # Process a single parsed URL (hostname:port format)
@@ -278,6 +243,7 @@ process_parsed_url() {
 
     # Logging functions
     log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
+    log_warning() { echo -e "${YELLOW}[WARN]${NC} $*" >&2; }
     log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
     log_verbose() { if [[ "$VERBOSE" == true ]]; then echo -e "${BLUE}[DEBUG]${NC} $*"; fi; }
 
@@ -299,12 +265,17 @@ process_parsed_url() {
             echo "1" >> "${TEMP_DIR}/success.count"
             return 0
         elif [[ "$http_code" == "422" ]]; then
-            local error_msg
-            error_msg=$(cat "$temp_response" 2>/dev/null | grep -o '"message":"[^"]*"' | cut -d'"' -f4 || echo "Validation error")
+            # Invalid hostname or a target the Observatory will not grade - don't retry
+            local counter error_msg
+            IFS=$'\t' read -r counter error_msg < <(write_unprocessable_record \
+                "$temp_response" "$output_file" "$host_param" "$timestamp")
             rm -f "$temp_response"
-            log_error "${hostname}:${port} - ${error_msg} (HTTP ${http_code})"
-            echo "{\"error\": \"validation_error\", \"message\": \"${error_msg}\", \"http_code\": ${http_code}, \"host\": \"${host_param}\", \"timestamp\": \"${timestamp}\"}" > "$output_file"
-            echo "1" >> "${TEMP_DIR}/failed.count"
+            if [[ "$counter" == "skipped" ]]; then
+                log_warning "${hostname}:${port} - ${error_msg} (not scannable)"
+            else
+                log_error "${hostname}:${port} - ${error_msg} (HTTP ${http_code})"
+            fi
+            echo "1" >> "${TEMP_DIR}/${counter:-failed}.count"
             return 1
         else
             rm -f "$temp_response"
@@ -322,7 +293,7 @@ process_parsed_url() {
 }
 
 # Export function and variables for use with xargs
-export -f process_parsed_url
+export -f process_parsed_url write_unprocessable_record
 export SCAN_API_URL OUTPUT_DIR RETRIES TIMEOUT VERBOSE TEMP_DIR
 export RED GREEN YELLOW BLUE NC
 
@@ -354,9 +325,11 @@ run_scans() {
     echo ""
 
     # Process URLs in parallel using xargs
-    # Using exported function to avoid command line length issues
+    # Using exported function to avoid command line length issues.
+    # Per-host failures are counted and reported in the summary, so a non-zero
+    # xargs status (123: some host failed) must not abort the run under set -e.
     printf '%s\n' "${valid_urls[@]}" | \
-        xargs -P "$CONCURRENCY" -I {} bash -c 'process_parsed_url "$@"' _ {}
+        xargs -P "$CONCURRENCY" -I {} bash -c 'process_parsed_url "$@"' _ {} || true
 
     echo ""
 }
@@ -365,6 +338,7 @@ run_scans() {
 print_summary() {
     local success_count=0
     local failed_count=0
+    local skipped_count=0
     local total_count
 
     if [[ -f "${TEMP_DIR}/success.count" ]]; then
@@ -375,13 +349,18 @@ print_summary() {
         failed_count=$(wc -l < "${TEMP_DIR}/failed.count")
     fi
 
-    total_count=$((success_count + failed_count))
+    if [[ -f "${TEMP_DIR}/skipped.count" ]]; then
+        skipped_count=$(wc -l < "${TEMP_DIR}/skipped.count")
+    fi
+
+    total_count=$((success_count + failed_count + skipped_count))
 
     echo "=============================================="
     echo "                 SCAN SUMMARY                 "
     echo "=============================================="
     echo -e "Total scanned:  ${total_count}"
     echo -e "Successful:     ${GREEN}${success_count}${NC}"
+    echo -e "Skipped:        ${YELLOW}${skipped_count}${NC} (not scannable)"
     echo -e "Failed:         ${RED}${failed_count}${NC}"
     echo "=============================================="
     echo "Results saved to: ${OUTPUT_DIR}"

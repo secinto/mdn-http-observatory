@@ -6,6 +6,7 @@ import Ajv from "ajv";
 import { assert } from "chai";
 
 import { SCHEMAS } from "../src/api/v2/schemas.js";
+import { ScanAbortReason } from "../src/scanner/index.js";
 
 // The files in scripts/examples are saved by scripts/concurrent-scan.sh, which
 // calls the scanFullDetails endpoint and writes either:
@@ -84,6 +85,19 @@ describe("scripts/examples scan output files", () => {
             example.message,
             "error record needs a string `message`"
           );
+          if (example.error === "target_not_scannable") {
+            // A target the Observatory refused to grade (HTTP 422 scan-failed).
+            assert.include(
+              Object.values(ScanAbortReason),
+              example.not_scanned_reason,
+              "not-scannable record needs a known `not_scanned_reason`"
+            );
+            assert.isTrue(
+              example.status_code === null ||
+                Number.isSafeInteger(example.status_code),
+              "`status_code` must be an integer or null"
+            );
+          }
         }
       });
 

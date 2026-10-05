@@ -1,0 +1,9 @@
+{
+  "error": "target_not_scannable",
+  "message": "The site seems to be down. (ECONNABORTED)",
+  "not_scanned_reason": "site-down",
+  "status_code": null,
+  "http_code": 422,
+  "host": "smtp.gmail.com:443",
+  "timestamp": "20261005_202829"
+}
