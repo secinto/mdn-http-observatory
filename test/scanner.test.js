@@ -25,11 +25,10 @@ const requestsWithStatus = (status) => {
 };
 
 /**
- * @param {number} status
  * @param {string} wwwAuth
  */
-const requestsWithAuth = (status, wwwAuth) => {
-  const req = requestsWithStatus(status);
+const unauthorizedRequestsWithAuth = (wwwAuth) => {
+  const req = requestsWithStatus(401);
   req.responses.auto?.headers.set("www-authenticate", wwwAuth);
   return req;
 };
@@ -169,7 +168,7 @@ describe("Scanner", () => {
     ]) {
       it(`does not scan a Basic/Digest 401 (${wwwAuth})`, function () {
         try {
-          analyzeScan(requestsWithAuth(401, wwwAuth));
+          analyzeScan(unauthorizedRequestsWithAuth(wwwAuth));
           throw new Error("analyzeScan should have thrown");
         } catch (error) {
           assert.instanceOf(error, ScanAbortedError);
@@ -182,7 +181,9 @@ describe("Scanner", () => {
     }
 
     it("still scans an app-level 401 (Bearer / no Basic challenge)", function () {
-      const result = analyzeScan(requestsWithAuth(401, 'Bearer realm="api"'));
+      const result = analyzeScan(
+        unauthorizedRequestsWithAuth('Bearer realm="api"')
+      );
       assert.equal(result.scan.statusCode, 401);
     });
 
